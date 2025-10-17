@@ -42,10 +42,20 @@ Route::middleware('auth')->group(function () {
     Route::put('/usuarios/{usuario}/permisos', [UsuarioController::class, 'updatePermissions'])->name('usuarios.permissions.update');
     // --- FIN: Rutas de Administración de Usuarios ---
 
-    // --- INICIO: Rutas para Muestras ---
+// --- INICIO: Rutas para Muestras ---
     Route::get('/muestras/registro', [MuestraController::class, 'create'])->name('muestras.create');
     Route::post('/muestras/registro', [MuestraController::class, 'store'])->name('muestras.store');
+    Route::get('/muestras/analisis', [MuestraController::class, 'analisisIndex'])->name('muestras.analisis');
+    Route::get('/api/muestras-pendientes', [MuestraController::class, 'fetchPendientes'])->name('api.muestras.pendientes');
+    Route::patch('/muestras/{muestra}/rechazar', [MuestraController::class, 'rechazar'])->name('muestras.rechazar');
     // --- FIN: Rutas para Muestras ---
+
+    // --- INICIO: Rutas para la Analisis de muestras ---
+    Route::get('/muestras/{muestra}/analizar', [MuestraController::class, 'showAnalisisForm'])->name('muestras.analizar.form');
+    Route::post('/muestras/{muestra}/analizar', [MuestraController::class, 'storeAnalisis'])->name('muestras.analizar.store');    
+    // --- FIN: Rutas para Analisis de muestras ---    
+
+    
 });
 
 require __DIR__.'/auth.php';

@@ -1,16 +1,32 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
-use App\Models\Material; // <<-- ¡Añade esta línea!
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class MaterialController extends Controller
+class Material extends Model
 {
-    public function index()
-    {
-        $materiales = Material::all(); // Ahora Laravel sabe dónde encontrar "Material"
-        return view('materiales.index', compact('materiales'));
-    }
-    // ... otros métodos
+    use HasFactory;
+
+    /**
+     * El nombre de la tabla asociada con el modelo.
+     *
+     * @var string
+     */
+    protected $table = 'CatMateriales';
+
+    /**
+     * La clave primaria asociada con la tabla.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'IdMaterial';
+
+    /**
+     * Indica si el modelo debe tener timestamps.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
 }

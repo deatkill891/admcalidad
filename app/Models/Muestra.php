@@ -15,7 +15,8 @@ class Muestra extends Model
         'IdMaterial', 'IdEstatusAnalisis', 'IdUsuarioOper',
         'PlacaTractor', 'PlacaTolva', 'Proveedor', 'Remision',
         'Tonelaje', 'Solicitante', 'Area', 'Identificacion',
-        'Analisis', 'FechaRegistro', 'FechaRecibo', 'Clima', 'Humedad'
+        'Analisis', 'FechaRegistro', 'FechaRecibo', 'Clima', 'Humedad',
+        'IdUsuarioAnal', 'FechaAnalisis'
     ];
 
     // Relación: Una Muestra pertenece a un Material
@@ -31,5 +32,28 @@ class Muestra extends Model
     // Relación: Una Muestra fue registrada por un Usuario
     public function usuarioOper() {
         return $this->belongsTo(Usuario::class, 'IdUsuarioOper', 'IdUsuario');
+    }
+    
+    // Relación: Para el formulario de análisis dinámico
+    public function combinaciones()
+    {
+        return $this->hasManyThrough(
+            Combinacion::class,
+            Material::class,
+            'IdMaterial', // Clave foránea en la tabla Materiales
+            'IdMaterial', // Clave foránea en la tabla Combinaciones
+            'IdMaterial', // Clave local en la tabla Muestras
+            'IdMaterial'  // Clave local en la tabla Materiales
+        )->with('elemento'); // Cargar también la información del elemento asociado
+    }
+
+    /**
+     * Define la relación con los resultados del análisis.
+     */
+    public function resultados()
+    {
+        // Una muestra tiene muchos resultados
+        return $this->hasMany(ResultadoAnalisis::class, 'IdMuestra', 'IdMuestra')
+                    ->with('elemento'); // Carga también la info del elemento
     }
 }
