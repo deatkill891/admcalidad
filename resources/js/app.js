@@ -1,5 +1,4 @@
-import './bootstrap.js'; // Esta línea ya suele estar
-import 'bootstrap';      // <-- ASEGÚRATE DE AÑADIR ESTA LÍNEA
+import './bootstrap';
 
 import Alpine from 'alpinejs';
 

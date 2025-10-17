@@ -1,0 +1,220 @@
+  body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(ellipse at top left, #e9eef6 0%, #dce3f0 40%, #f5f7fa 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+    color: #212529;
+  }
+
+  /* --- Liquid Glass Sidebar --- */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    width: 280px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-right: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s ease-in-out;
+    overflow-y: auto;
+  }
+
+  /* --- Estado retraído --- */
+  .sidebar.collapsed {
+    width: 80px;
+  }
+
+/* Oculta textos y contenido no esencial cuando el sidebar está colapsado */
+.sidebar.collapsed .hide-on-collapse, /* Oculta el texto del título y otros spans si tienen esta clase */
+.sidebar.collapsed .dropdown-toggle strong {
+    display: none !important; /* Usamos !important para asegurar que se aplique sobre cualquier otra clase de Bootstrap o de tu CSS */
+}
+
+/* El ícono de alternancia (toggle-btn) debe ser visible. */
+.sidebar.collapsed .toggle-btn {
+    display: block !important; /* Aseguramos que siempre sea visible */
+    margin-left: auto; /* Centra el ícono en el modo colapsado */
+    margin-right: auto;
+}
+
+/* Ajusta el ícono de las migas de pan para que se centre en el encabezado colapsado */
+.sidebar.collapsed .d-flex.align-items-center.mb-3 {
+    justify-content: center !important; 
+}
+  /* Centra los íconos cuando está retraída */
+  .sidebar.collapsed .nav-link i {
+    margin-right: 0 !important;
+    font-size: 1.3rem;
+  }
+
+  /* Ajuste de avatar en modo colapsado */
+  .sidebar.collapsed .dropdown img {
+    margin: 0 auto;
+  }
+
+  .sidebar:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.1) 100%);
+    backdrop-filter: blur(25px) saturate(200%);
+  }
+
+  .sidebar a,
+  .sidebar .dropdown-item {
+    color: #1a1a1a !important;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+
+  .sidebar .nav-link {
+    border-radius: 10px;
+    margin-bottom: 4px;
+    transition: all 0.25s ease-in-out;
+    display: flex;
+    align-items: center;
+  }
+
+  .sidebar .nav-link.active {
+    background: linear-gradient(90deg, rgba(255, 140, 0, 0.85) 0%, rgba(255, 165, 0, 0.85) 100%);
+    color: #fff !important;
+    font-weight: 600;
+    box-shadow: 0 3px 15px rgba(255, 140, 0, 0.3);
+    transform: translateX(2px);
+  }
+
+  .sidebar .nav-link:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    transform: translateX(3px);
+  }
+
+  .sidebar .dropdown-menu {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  }
+/* --- Botón toggle (Versión ajustada) --- */
+.toggle-btn {
+    /* Eliminamos: position: fixed, top, left, z-index */
+    /* Lo convertimos en un ícono de alternancia simple. */
+    cursor: pointer;
+    transition: transform 0.3s ease; /* Mantenemos una transición suave */
+    /* Eliminamos el fondo circular para integrarlo al encabezado */
+    
+    /* Si el ícono está en la barra lateral, solo necesita ser un puntero: */
+    width: auto;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.toggle-btn:hover {
+    /* Solo aplicamos un ligero efecto visual al pasar el ratón */
+    transform: scale(1.1); 
+    opacity: 0.8;
+}
+
+/* Opcional: Si quieres que el icono 'gire' ligeramente al colapsar, puedes añadir: */
+/*
+.sidebar.collapsed .toggle-btn {
+    transform: rotate(180deg);
+}
+*/
+
+  .main-content {
+    margin-left: 280px;
+    transition: margin-left 0.4s ease-in-out;
+  }
+
+  .main-content.collapsed {
+    margin-left: 80px;
+  }
+
+  /* --- Liquid Glass Cards --- */
+  .card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border-radius: 1rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  }
+
+  .card-header {
+    background: rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(90deg, #fd7e14 0%, #ffb347 100%);
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(253, 126, 20, 0.4);
+    transition: all 0.3s ease-in-out;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(253, 126, 20, 0.5);
+    opacity: 0.95;
+  }
+
+  /* --- Liquid Glass Sidebar --- */
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  width: 280px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 8px 0 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s ease-in-out;
+  
+  /* Permite el desplazamiento si el contenido es largo */
+  overflow-y: scroll; 
+
+  /* Oculta la barra de desplazamiento en IE y Edge antiguo */
+  -ms-overflow-style: none;  
+  /* Oculta la barra de desplazamiento en Firefox */
+  scrollbar-width: none; 
+}
+
+/* Oculta la barra de desplazamiento en Chrome, Safari y Edge moderno */
+.sidebar::-webkit-scrollbar {
+    display: none;
+}
+/* Tu código para el resto del .sidebar continúa aquí... */
+
+  @media (max-width: 991.98px) {
+    .sidebar {
+      width: 0;
+      overflow: hidden;
+    }
+
+    .sidebar.show {
+      width: 280px;
+    }
+
+    .toggle-btn {
+      left: 15px !important;
+    }
+
+    .main-content {
+      margin-left: 0 !important;
+    }
+  }
