@@ -11,6 +11,7 @@
   <link href="{{ asset('css/original.css') }}" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs5/dt-1.11.5/datatables.min.css" />
 </head>
 
 <body>
@@ -24,13 +25,32 @@
       <hr>
 
       <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-1"><a href="#" class="nav-link active rounded-3" aria-current="page"
-            style="--bs-bg-opacity: .9;"><i class="bi bi-house-door me-2"></i> <span
-              class="hide-on-collapse">Dashboard</span></a></li>
-        <li class="nav-item mb-1"><a href="#" class="nav-link text-dark rounded-3"><i class="bi bi-vial me-2"></i> <span
-              class="hide-on-collapse">Muestras</span></a></li>
-        <li class="nav-item mb-1"><a href="#" class="nav-link text-dark rounded-3"><i class="bi bi-box me-2"></i> <span
-              class="hide-on-collapse">Usuarios</span></a></li>
+        <ul class="nav nav-pills flex-column mb-auto">
+
+          <li class="nav-item mb-1">
+            <a href="{{ route('dashboard') }}"
+              class="nav-link {{ request()->routeIs('dashboard') ? 'active' : 'text-dark' }} rounded-3"
+              aria-current="page">
+              <i class="bi bi-house-door me-2"></i>
+              <span class="hide-on-collapse">Dashboard</span>
+            </a>
+          </li>
+
+          <li class="nav-item mt-2 mb-1">
+            <h6 class="nav-link text-muted text-uppercase small fw-bold" style="pointer-events: none;">
+              <i class="bi bi-shield-lock me-2"></i>
+              <span class="hide-on-collapse">Admin</span>
+            </h6>
+          </li>
+
+          <li class="nav-item mb-1">
+            <a href="{{ route('usuarios.index') }}"
+              class="nav-link {{ request()->routeIs('usuarios.*') ? 'active' : 'text-dark' }} rounded-3">
+              <i class="bi bi-person-workspace ms-3 me-1"></i> <span class="hide-on-collapse">Usuarios</span>
+            </a>
+          </li>
+
+        </ul>
       </ul>
       <hr>
 
@@ -64,7 +84,25 @@
       </div>
     </main>
   </div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/v/bs5/dt-1.11.5/datatables.min.js"></script>
+
+  <script>
+  $(document).ready(function() {
+    $('#usersTable').DataTable({
+      // Opciones de configuración (Opcional, pero recomendado)
+      language: {
+        url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json' // Idioma español
+      },
+      responsive: true, // Habilita la tabla responsiva
+      lengthMenu: [
+        [10, 25, 50, -1],
+        [10, 25, 50, "Todos"]
+      ] // Opciones del selector de resultados
+    });
+  });
+  </script>
   <script src="{{ asset('js/original.js') }}"></script>
 
 </body>

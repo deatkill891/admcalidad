@@ -20,10 +20,6 @@
             @include('profile.partials.update-password-form')
           </div>
 
-          <div class="p-3 border rounded-3">
-            @include('profile.partials.delete-user-form')
-          </div>
-
         </div>
       </div>
     </div>
