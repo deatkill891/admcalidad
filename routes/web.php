@@ -2,8 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UsuarioController;
-use App\Http\Controllers\DashboardController; // <-- Corregido y añadido
-use App\Http\Controllers\MuestraController;   // <-- Añadido para las muestras
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MuestraController;
+use App\Http\Controllers\AnalisisHornoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,12 +22,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Ruta del Dashboard ahora apunta al DashboardController
+// Ruta del Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+// Grupo de rutas que requieren autenticación
 Route::middleware('auth')->group(function () {
+    
     // Rutas de Perfil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -42,7 +45,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/usuarios/{usuario}/permisos', [UsuarioController::class, 'updatePermissions'])->name('usuarios.permissions.update');
     // --- FIN: Rutas de Administración de Usuarios ---
 
-// --- INICIO: Rutas para Muestras ---
+    // --- INICIO: Rutas para Muestras ---
+    // (Estas rutas parecen ser del dashboard, las mantenemos)
     Route::get('/muestras/registro', [MuestraController::class, 'create'])->name('muestras.create');
     Route::post('/muestras/registro', [MuestraController::class, 'store'])->name('muestras.store');
     Route::get('/muestras/analisis', [MuestraController::class, 'analisisIndex'])->name('muestras.analisis');
@@ -52,10 +56,22 @@ Route::middleware('auth')->group(function () {
 
     // --- INICIO: Rutas para la Analisis de muestras ---
     Route::get('/muestras/{muestra}/analizar', [MuestraController::class, 'showAnalisisForm'])->name('muestras.analizar.form');
-    Route::post('/muestras/{muestra}/analizar', [MuestraController::class, 'storeAnalisis'])->name('muestras.analizar.store');    
-    // --- FIN: Rutas para Analisis de muestras ---    
-
+    Route::post('/muestras/{muestra}/analizar', [MuestraController::class, 'storeAnalisis'])->name('muestras.analizar.store');
+    // --- FIN: Rutas para Analisis de muestras ---
     
+
+    // --- INICIO: Rutas para Análisis de Horno (HF, HA, MCC) ---
+    // Ruta para MOSTRAR el formulario (acepta 'hf', 'ha', o 'mcc' como parámetro)
+    Route::get('/analisis-horno/{tipo}', [AnalisisHornoController::class, 'create'])
+        ->where('tipo', 'hf|ha|mcc') // Restringe el parámetro a solo esos 3 valores
+        ->name('analisis-horno.create');
+
+    // Ruta para GUARDAR los datos del formulario (la lógica estará en el controlador)
+    Route::post('/analisis-horno', [AnalisisHornoController::class, 'store'])
+        ->name('analisis-horno.store');
+    // --- FIN: Rutas para Análisis de Horno ---
+
 });
 
+// Archivo de rutas de autenticación
 require __DIR__.'/auth.php';
