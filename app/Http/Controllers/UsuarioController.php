@@ -17,8 +17,8 @@ class UsuarioController extends Controller
      */
     public function index()
     {
-        // Obtiene todos los usuarios y los pasa a la vista 'index'
-        $usuarios = Usuario::all();
+        // Obtiene todos los usuarios y carga sus relaciones para evitar N+1 queries en la vista
+        $usuarios = Usuario::with(['ubicacion', 'tipoUsuario'])->get();
         return view('usuarios.index', compact('usuarios'));
     }
 
@@ -28,7 +28,7 @@ class UsuarioController extends Controller
      */
     public function create()
     {
-        // Obtiene los catálogos de ubicaciones y tipos de usuario
+        // Obtiene los catálogos de ubicaciones y tipos de usuario activos
         $ubicaciones = Ubicacion::where('IdEstatus', 1)->orderBy('Ubicacion')->get();
         $tiposUsuario = TipoUsuario::where('IdEstatus', 1)->orderBy('TipoUsuario')->get();
 
@@ -37,14 +37,14 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Almacena un nuevo usuario en la base de datos.
+     * Almacena un nuevo usuario en la base de datos y crea sus permisos por defecto.
      */
     public function store(Request $request)
     {
-        // Valida los datos del formulario
+        // Valida los datos del formulario, especificando la tabla para 'unique'
         $request->validate([
-            'username' => ['required', 'string', 'max:255', 'unique:CatUsuarios'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:CatUsuarios'],
+            'username' => ['required', 'string', 'max:255', 'unique:CatUsuarios,username'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:CatUsuarios,email'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'IdUbicacion' => ['required', 'integer', 'exists:CatUbicaciones,IdUbicacion'],
             'IdTipoUsuario' => ['required', 'integer', 'exists:CatTipoUsuarios,IdTipoUsuario'],
@@ -58,14 +58,13 @@ class UsuarioController extends Controller
             'IdUbicacion' => $request->IdUbicacion,
             'IdTipoUsuario' => $request->IdTipoUsuario,
             'IdEstatus' => 1, // Estatus activo por defecto
-            'FechaRegistro' => now(),
+            'FechaRegistro' => now(), // Asumiendo que $timestamps=false en el modelo
         ]);
 
-        // --- INICIO DE LA MODIFICACIÓN ---
         // Se crea el registro de permisos para el nuevo usuario
         // y se inicializan todos los permisos en 0 por defecto.
         Permiso::create([
-            'IdUsuario' => $usuario->IdUsuario,
+            'IdUsuario' => $usuario->IdUsuario, // Usa el ID del usuario recién creado
             'IdEstatus' => 1,
             'FechaRegistro' => now(),
             'Administrador' => 0,
@@ -79,10 +78,10 @@ class UsuarioController extends Controller
             'Metrologia' => 0,
             'Eads' => 0,
             'Evidencias' => 0,
+            // FechaActualizacion puede ser null inicialmente o now()
         ]);
-        // --- FIN DE LA MODIFICACIÓN ---
 
-        return redirect()->route('usuarios.index')->with('success', 'Usuario creado exitosamente.');
+        return redirect()->route('usuarios.index')->with('success', 'Usuario creado exitosamente y permisos inicializados.');
     }
 
     /**
@@ -90,7 +89,11 @@ class UsuarioController extends Controller
      */
     public function edit(Usuario $usuario)
     {
-        return view('usuarios.edit', compact('usuario'));
+        // Carga los catálogos necesarios para los selects del formulario de edición
+        $ubicaciones = Ubicacion::where('IdEstatus', 1)->orderBy('Ubicacion')->get();
+        $tiposUsuario = TipoUsuario::where('IdEstatus', 1)->orderBy('TipoUsuario')->get();
+
+        return view('usuarios.edit', compact('usuario', 'ubicaciones', 'tiposUsuario'));
     }
 
     /**
@@ -98,20 +101,34 @@ class UsuarioController extends Controller
      */
     public function update(Request $request, Usuario $usuario)
     {
+        // Valida los datos, ignorando el usuario actual en las reglas 'unique'
         $request->validate([
-            'username' => ['required', 'string', 'max:255', 'unique:'.Usuario::class.',username,'.$usuario->IdUsuario.',IdUsuario'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.Usuario::class.',email,'.$usuario->IdUsuario.',IdUsuario'],
-            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            // unique:<table>,<column>,<ignore_value>,<ignore_column>
+            'username' => ['required', 'string', 'max:255', 'unique:CatUsuarios,username,'.$usuario->IdUsuario.',IdUsuario'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:CatUsuarios,email,'.$usuario->IdUsuario.',IdUsuario'],
+            'password' => ['nullable', 'confirmed', Rules\Password::defaults()], // Password opcional
+            'IdUbicacion' => ['required', 'integer', 'exists:CatUbicaciones,IdUbicacion'],
+            'IdTipoUsuario' => ['required', 'integer', 'exists:CatTipoUsuarios,IdTipoUsuario'],
+            'IdEstatus' => ['required', 'integer'], // Asumiendo que tienes un select para estatus
         ]);
 
-        $usuario->username = $request->username;
-        $usuario->email = $request->email;
+        // Prepara los datos para actualizar el modelo Usuario
+        $updateData = [
+            'username' => $request->username,
+            'email' => $request->email,
+            'IdUbicacion' => $request->IdUbicacion,
+            'IdTipoUsuario' => $request->IdTipoUsuario,
+            'IdEstatus' => $request->IdEstatus,
+            // Agrega otros campos de CatUsuarios si los tienes en el formulario
+        ];
 
+        // Actualiza la contraseña solo si se proporcionó una nueva
         if ($request->filled('password')) {
-            $usuario->password = Hash::make($request->password);
+            $updateData['password'] = Hash::make($request->password);
         }
 
-        $usuario->save();
+        // Actualiza el registro del usuario
+        $usuario->update($updateData);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado exitosamente.');
     }
@@ -121,16 +138,20 @@ class UsuarioController extends Controller
      */
     public function editPermissions(Usuario $usuario)
     {
-        // Carga el usuario con su relación de permisos
-        $usuario->load('permisos');
+        // Carga el usuario asegurándose de incluir la relación 'permiso' (singular)
+        // load() añade la relación al modelo ya existente.
+        $usuario->load('permiso'); // <-- CORRECCIÓN APLICADA AQUÍ
+
+        // Pasa el usuario (con la relación 'permiso' cargada) a la vista
         return view('usuarios.permisos', compact('usuario'));
     }
-
     /**
      * Actualiza los permisos de un usuario.
      */
     public function updatePermissions(Request $request, Usuario $usuario)
     {
+        // Prepara los datos de permisos basándose en los checkboxes del formulario
+        // $request->has('nombre_checkbox') devuelve true si está marcado, false si no.
         $permisosData = [
             'Administrador' => $request->has('Administrador') ? 1 : 0,
             'Analisis' => $request->has('Analisis') ? 1 : 0,
@@ -143,12 +164,41 @@ class UsuarioController extends Controller
             'Metrologia' => $request->has('Metrologia') ? 1 : 0,
             'Eads' => $request->has('Eads') ? 1 : 0,
             'Evidencias' => $request->has('Evidencias') ? 1 : 0,
-            'FechaActualizacion' => now(),
+            'FechaActualizacion' => now(), // Actualiza la fecha de modificación
+            // Podrías necesitar actualizar IdEstatus de CatPermisos aquí también si es relevante
+            // 'IdEstatus' => $request->input('permisos_estatus', 1) // Ejemplo
         ];
-        
-        // Actualiza o crea los permisos asociados al usuario
-        $usuario->permisos()->updateOrCreate(['IdUsuario' => $usuario->IdUsuario], $permisosData);
-    
+
+        // Busca un registro en CatPermisos con el IdUsuario dado.
+        // Si lo encuentra, lo actualiza con $permisosData.
+        // Si no lo encuentra, crea un nuevo registro con ['IdUsuario' => $usuario->IdUsuario] + $permisosData.
+        Permiso::updateOrCreate(
+            ['IdUsuario' => $usuario->IdUsuario], // Criterio de búsqueda
+            $permisosData                       // Datos para insertar o actualizar
+        );
+
         return redirect()->route('usuarios.index')->with('success', 'Permisos actualizados correctamente.');
     }
+
+    /**
+     * Opcional: Método para eliminar un usuario.
+     * Considera usar Soft Deletes si necesitas poder recuperarlos.
+     */
+    // public function destroy(Usuario $usuario)
+    // {
+    //     try {
+    //         // Importante: Considera si necesitas eliminar los permisos primero
+    //         // o si tienes configurada la eliminación en cascada en la BD.
+    //         // $usuario->permiso()->delete(); // Si la relación se llama 'permiso'
+
+    //         $usuario->delete(); // Elimina el usuario
+    //         return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado correctamente.');
+    //     } catch (\Illuminate\Database\QueryException $e) {
+    //         // Captura errores de BD, como restricciones de llaves foráneas
+    //         return redirect()->route('usuarios.index')->with('error', 'No se pudo eliminar el usuario. Puede estar asociado a otros registros.');
+    //     } catch (\Exception $e) {
+    //         // Captura otros errores generales
+    //         return redirect()->route('usuarios.index')->with('error', 'Ocurrió un error al eliminar el usuario.');
+    //     }
+    // }
 }
