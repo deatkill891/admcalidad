@@ -10,12 +10,12 @@
   <div class="py-4">
     <div class="container-fluid">
 
+      {{-- TABLA MUESTRAS EN ESPERA --}}
       <div class="card shadow-sm border-0 rounded-4 mb-4">
         <div class="card-body p-4 p-md-5">
           <h5 class="fw-bold mb-3 text-dark">
             <i class="fas fa-tasks me-2 text-success"></i> Muestras en Lista de Espera
           </h5>
-
           <div class="table-responsive">
             <table class="table table-hover align-middle rounded-4 overflow-hidden">
               <thead style="background-color: #e8f5e9; color: #212529; font-weight: 600;">
@@ -28,7 +28,6 @@
                   <th>Acciones</th>
                 </tr>
               </thead>
-
               <tbody id="tabla-espera-body">
                 @forelse($muestrasEnEspera as $muestra)
                 <tr>
@@ -68,7 +67,7 @@
         </div>
       </div>
 
-
+      {{-- FORMULARIO REGISTRO NUEVA MUESTRA --}}
       <div class="card shadow-sm border-0 rounded-4 mb-4">
         <div class="card-body p-4 p-md-5">
           <h5 class="fw-bold mb-3 text-dark border-bottom pb-3">
@@ -84,7 +83,7 @@
           <form method="POST" action="{{ route('muestras.store') }}">
             @csrf
             <div class="row g-3">
-
+              {{-- SELECT MATERIAL --}}
               <div class="col-md-12">
                 <label for="IdMaterial" class="form-label fw-semibold">Material <span
                     class="text-danger">*</span></label>
@@ -99,14 +98,14 @@
                 </select>
               </div>
 
+              {{-- CAMPOS DINÁMICOS --}}
               <div id="campos-dinamicos" class="row g-3 m-0 p-0">
 
+                {{-- GRUPO VEHICULAR CON INPUT PROVEEDOR --}}
                 <div id="grupo-vehicular" class="row g-3 m-0 p-0" style="display: none;">
                   <div class="col-md-4">
-                    <label for="proveedor_vehicular" class="form-label fw-semibold">Proveedor</label>
-                    <select id="proveedor_vehicular" name="Proveedor" class="form-select proveedor-select" disabled>
-                      <option value="" selected disabled>Seleccione un material primero...</option>
-                    </select>
+                    <label class="form-label fw-semibold">Proveedor</label>
+                    <input type="text" class="form-control" name="Proveedor" value="{{ old('Proveedor') }}">
                   </div>
                   <div class="col-md-4"><label class="form-label fw-semibold">Remisión</label><input type="text"
                       class="form-control" name="Remision" value="{{ old('Remision') }}"></div>
@@ -118,6 +117,7 @@
                       class="form-control" name="Tonelaje" value="{{ old('Tonelaje') }}"></div>
                 </div>
 
+                {{-- GRUPO INTERNO --}}
                 <div id="grupo-interno" class="row g-3 m-0 p-0" style="display: none;">
                   <div class="col-md-4"><label class="form-label fw-semibold">Solicitante</label><input type="text"
                       class="form-control" name="Solicitante" value="{{ old('Solicitante') }}"></div>
@@ -129,12 +129,11 @@
                       type="text" class="form-control" name="Analisis" value="{{ old('Analisis') }}"></div>
                 </div>
 
+                {{-- GRUPO INSUMOS CON INPUT PROVEEDOR --}}
                 <div id="grupo-insumos" class="row g-3 m-0 p-0" style="display: none;">
                   <div class="col-md-6">
-                    <label for="proveedor_insumos" class="form-label fw-semibold">Proveedor</label>
-                    <select id="proveedor_insumos" name="Proveedor" class="form-select proveedor-select" disabled>
-                      <option value="" selected disabled>Seleccione un material primero...</option>
-                    </select>
+                    <label class="form-label fw-semibold">Proveedor</label>
+                    <input type="text" class="form-control" name="Proveedor" value="{{ old('Proveedor') }}">
                   </div>
                   <div class="col-md-6"><label class="form-label fw-semibold">Remisión</label><input type="text"
                       class="form-control" name="Remision" value="{{ old('Remision') }}"></div>
@@ -142,6 +141,7 @@
 
               </div>
             </div>
+            {{-- BOTÓN SUBMIT --}}
             <div class="d-flex justify-content-end mt-4">
               <button type="submit" class="btn btn-primary fw-bold px-4 py-2">
                 <i class="fas fa-save me-2"></i> Registrar Muestra
@@ -151,6 +151,7 @@
         </div>
       </div>
 
+      {{-- TABLA MUESTRAS RECIENTES --}}
       <div class="card shadow-sm border-0 rounded-4">
         <div class="card-body p-4 p-md-5">
           <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-history me-2"></i> Muestras Recientes (Últimas 10)</h5>
@@ -200,190 +201,146 @@
     </div>
   </div>
 
+  {{-- SCRIPT SIMPLIFICADO --}}
   <script>
   document.addEventListener('DOMContentLoaded', function() {
 
-    // === Lógica para el formulario dinámico (MODIFICADA) ===
-
-    // 1. Pasamos los datos de Laravel (con proveedores) a JavaScript
-    // Usamos keyBy para un acceso más fácil (ej: materialesData['1'])
-    const materialesData = @json($materiales - > keyBy('IdMaterial'));
-
-    // 2. Referencias a los elementos del DOM
+    // === Lógica para el formulario dinámico (Simplificada para input text) ===
     const materialSelect = document.getElementById('IdMaterial');
     const grupoVehicular = document.getElementById('grupo-vehicular');
     const grupoInterno = document.getElementById('grupo-interno');
     const grupoInsumos = document.getElementById('grupo-insumos');
-    // Obtenemos AMBOS selects de proveedor
-    const proveedorSelects = document.querySelectorAll('.proveedor-select');
-
-    // 3. IDs para la lógica de visualización
-    const idsVehicular = ['1', '2', '3', '14', '15', '16', '17', '18'];
-    const idsInterno = ['13'];
+    const idsVehicular = ['1', '2', '3', '14', '15', '16', '17', '18']; // IDs que muestran grupo vehicular
+    const idsInterno = ['13']; // IDs que muestran grupo interno
 
     function toggleFields() {
       const selectedId = materialSelect.value;
 
-      // Ocultar todos los grupos
+      // Ocultar todos los grupos primero
       grupoVehicular.style.display = 'none';
       grupoInterno.style.display = 'none';
       grupoInsumos.style.display = 'none';
 
-      // Deshabilitar TODOS los campos (inputs Y selects) en los grupos dinámicos
-      document.querySelectorAll('#campos-dinamicos input, #campos-dinamicos select').forEach(field => field
-        .disabled = true);
+      // Deshabilitar todos los inputs dentro de los grupos dinámicos
+      // Es buena práctica deshabilitarlos para que no se envíen si están ocultos
+      document.querySelectorAll('#campos-dinamicos input').forEach(input => input.disabled = true);
 
-      // Limpiar y reiniciar todos los selects de proveedor
-      proveedorSelects.forEach(select => {
-        select.innerHTML = '<option value="" selected disabled>Seleccione un material primero...</option>';
-      });
-
-      // Encontrar el grupo que debe estar activo
       let grupoActivo = null;
       if (idsVehicular.includes(selectedId)) {
         grupoActivo = grupoVehicular;
       } else if (idsInterno.includes(selectedId)) {
         grupoActivo = grupoInterno;
-      } else if (selectedId) { // Cualquier otro material que no sea vehicular o interno
+      } else if (selectedId) { // Si hay un ID seleccionado y no es vehicular ni interno
         grupoActivo = grupoInsumos;
       }
 
-      // Si encontramos un grupo para activar
+      // Si encontramos un grupo para mostrar
       if (grupoActivo) {
         // Mostrar el grupo
-        grupoActivo.style.display = 'flex';
-
-        // Habilitar todos los 'input' dentro de ese grupo
+        grupoActivo.style.display = 'flex'; // Usamos flex porque los grupos tienen 'row'
+        // Habilitar SOLO los inputs dentro de ESE grupo activo
         grupoActivo.querySelectorAll('input').forEach(input => input.disabled = false);
-
-        // --- INICIO NUEVA LÓGICA DE PROVEEDORES ---
-
-        // Buscar si este grupo activo tiene un select de proveedor
-        const activeProveedorSelect = grupoActivo.querySelector('.proveedor-select');
-
-        if (activeProveedorSelect) {
-          const material = materialesData[selectedId];
-
-          // Verificar si el material tiene proveedores y si la lista no está vacía
-          if (material && material.proveedores && material.proveedores.length > 0) {
-
-            activeProveedorSelect.innerHTML =
-              '<option value="" selected disabled>Seleccione un proveedor...</option>';
-            activeProveedorSelect.disabled = false;
-
-            // Poblar el select con los proveedores
-            material.proveedores.forEach(proveedor => {
-              const option = document.createElement('option');
-
-              // Usamos la columna 'Proveedor' (el varchar) como valor Y como texto
-              // según la estructura de tu tabla CatProveedores
-              option.value = proveedor.Proveedor;
-              option.textContent = proveedor.Proveedor;
-
-              activeProveedorSelect.appendChild(option);
-            });
-
-          } else {
-            // El material no tiene proveedores, mostrar mensaje y mantener deshabilitado
-            activeProveedorSelect.innerHTML =
-              '<option value="" selected disabled>Material sin proveedores...</option>';
-            activeProveedorSelect.disabled = true;
-          }
-        } else {
-          // Si el grupo no tiene .proveedor-select (ej: grupo-interno),
-          // habilitamos cualquier otro select que pudiera tener.
-          grupoActivo.querySelectorAll('select').forEach(select => select.disabled = false);
-        }
-        // --- FIN NUEVA LÓGICA DE PROVEEDORES ---
       }
     }
 
-    // Asignar el evento y ejecutar al cargar
+    // Añadir el listener al select de material
     materialSelect.addEventListener('change', toggleFields);
+
+    // Ejecutar la función una vez al cargar la página por si hay valores preseleccionados (old values)
     toggleFields();
-    // === FIN LÓGICA FORMULARIO DINÁMICO ===
+    // === FIN Lógica formulario dinámico ===
 
 
-    // === Lógica para la actualización en vivo de la lista de espera (código original del usuario) ===
+    // === Lógica para la actualización en vivo de la lista de espera (Sin cambios) ===
     const tablaEsperaBody = document.getElementById('tabla-espera-body');
-    // Asegúrate de tener el meta tag CSRF en tu layout (ej: <meta name="csrf-token" content="{{ csrf_token() }}">)
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
 
     async function actualizarListaEspera() {
       try {
-        // Guardar posición de scroll actual
         const scrollPos = tablaEsperaBody.parentElement.scrollTop;
-
         const response = await fetch("{{ route('api.muestras.pendientes') }}");
-        if (!response.ok) throw new Error('Error en la respuesta del servidor.');
+        if (!response.ok) throw new Error(`Error en la respuesta del servidor: ${response.statusText}`);
 
         const muestras = await response.json();
         tablaEsperaBody.innerHTML = '';
 
         if (muestras.length === 0) {
           tablaEsperaBody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center text-muted py-5">
-              <i class="fas fa-check-circle fa-2x mb-2"></i>
-              <p class="mb-0">¡Excelente! No hay muestras pendientes por analizar.</p>
-            </td>
-          </tr>`;
+           <tr>
+             <td colspan="6" class="text-center text-muted py-5">
+               <i class="fas fa-check-circle fa-2x mb-2"></i>
+               <p class="mb-0">¡Excelente! No hay muestras pendientes por analizar.</p>
+             </td>
+           </tr>`;
         } else {
           muestras.forEach(muestra => {
-            const fechaRegistro = new Date(muestra.FechaRegistro).toLocaleString('es-MX', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            });
+            const fechaRegistro = muestra.FechaRegistro ?
+              new Date(muestra.FechaRegistro).toLocaleString('es-MX', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              }) :
+              'N/A';
+
+            const materialNombre = muestra.material?.Material ?? 'N/A';
+            const proveedorSolicitante = muestra.Proveedor || muestra.Solicitante || 'N/A';
+            const usuarioNombre = muestra.usuario_oper?.username ?? 'N/A';
+            const urlAnalizar = `/muestras/${muestra.IdMuestra}/analizar`;
+            const urlRechazar = `/muestras/${muestra.IdMuestra}/rechazar`;
 
             const newRowHTML = `
-            <tr>
-              <td><strong>${muestra.IdMuestra}</strong></td>
-              <td>${muestra.material ? muestra.material.Material : 'N/A'}</td>
-              <td>${fechaRegistro}</td>
-              <td>${muestra.Proveedor || muestra.Solicitante || 'N/A'}</td>
-              <td>${muestra.usuario_oper ? muestra.usuario_oper.username : 'N/A'}</td>
-              <td>
-                <a href="/muestras/${muestra.IdMuestra}/analizar" class="btn btn-sm btn-primary" title="Iniciar Análisis">
-                  <i class="fas fa-play me-1"></i> Analizar
-                </a>
-                <form action="/muestras/${muestra.IdMuestra}/rechazar" method="POST" class="d-inline"
-                  onsubmit="return confirm('¿Estás seguro de que deseas rechazar esta muestra?');">
-                  <input type="hidden" name="_token" value="${csrfToken}">
-                  <input type="hidden" name="_method" value="PATCH">
-                  <button type="submit" class="btn btn-sm btn-danger" title="Rechazar Muestra">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </form>
-              </td>
-            </tr>`;
+             <tr>
+               <td><strong>${muestra.IdMuestra}</strong></td>
+               <td>${materialNombre}</td>
+               <td>${fechaRegistro}</td>
+               <td>${proveedorSolicitante}</td>
+               <td>${usuarioNombre}</td>
+               <td>
+                 <a href="${urlAnalizar}" class="btn btn-sm btn-primary" title="Iniciar Análisis">
+                   <i class="fas fa-play me-1"></i> Analizar
+                 </a>
+                 <form action="${urlRechazar}" method="POST" class="d-inline"
+                   onsubmit="return confirm('¿Estás seguro de que deseas rechazar esta muestra?');">
+                   <input type="hidden" name="_token" value="${csrfToken}">
+                   <input type="hidden" name="_method" value="PATCH">
+                   <button type="submit" class="btn btn-sm btn-danger" title="Rechazar Muestra">
+                     <i class="fas fa-times"></i>
+                   </button>
+                 </form>
+               </td>
+             </tr>`;
             tablaEsperaBody.insertAdjacentHTML('beforeend', newRowHTML);
           });
         }
 
-        // Restaurar posición del scroll
-        tablaEsperaBody.parentElement.scrollTop = scrollPos;
+        if (tablaEsperaBody.parentElement) {
+          tablaEsperaBody.parentElement.scrollTop = scrollPos;
+        }
 
       } catch (error) {
         console.error('Error al actualizar la lista de espera:', error);
         tablaEsperaBody.innerHTML = `
-        <tr>
-          <td colspan="6" class="text-center text-danger py-4">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            No se pudo cargar la información.
-          </td>
-        </tr>`;
+         <tr>
+           <td colspan="6" class="text-center text-danger py-4">
+             <i class="fas fa-exclamation-triangle me-2"></i>
+             No se pudo cargar la información. Verifica la consola para más detalles.
+           </td>
+         </tr>`;
       }
     }
 
-    // Ejecutar una vez al cargar
-    actualizarListaEspera();
-
-    // Actualizar cada 15 segundos
-    setInterval(actualizarListaEspera, 15000);
+    if (tablaEsperaBody && csrfToken) {
+      actualizarListaEspera();
+      setInterval(actualizarListaEspera, 15000);
+    } else {
+      console.error("No se encontró tablaEsperaBody o el token CSRF. La actualización en vivo está desactivada.");
+    }
+    // === FIN Lógica actualización en vivo ===
   });
   </script>
+
 </x-app-layout>
