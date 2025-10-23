@@ -1,220 +1,198 @@
-  body {
-    font-family: 'Inter', sans-serif;
-    background: radial-gradient(ellipse at top left, #e9eef6 0%, #dce3f0 40%, #f5f7fa 100%);
-    background-attachment: fixed;
-    overflow-x: hidden;
-    color: #212529;
-  }
-
-  /* --- Liquid Glass Sidebar --- */
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-    width: 280px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-right: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.1);
-    transition: all 0.4s ease-in-out;
-    overflow-y: auto;
-  }
-
-  /* --- Estado retraído --- */
-  .sidebar.collapsed {
-    width: 80px;
-  }
-
-/* Oculta textos y contenido no esencial cuando el sidebar está colapsado */
-.sidebar.collapsed .hide-on-collapse, /* Oculta el texto del título y otros spans si tienen esta clase */
-.sidebar.collapsed .dropdown-toggle strong {
-    display: none !important; /* Usamos !important para asegurar que se aplique sobre cualquier otra clase de Bootstrap o de tu CSS */
+:root {
+  --sidebar-width-expanded: 280px;
+  --sidebar-width-collapsed: 88px; /* Ancho solo para iconos */
 }
 
-/* El ícono de alternancia (toggle-btn) debe ser visible. */
-.sidebar.collapsed .toggle-btn {
-    display: block !important; /* Aseguramos que siempre sea visible */
-    margin-left: auto; /* Centra el ícono en el modo colapsado */
-    margin-right: auto;
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #e0e0e0;
+  overflow-x: hidden; /* Prevenir scroll horizontal */
 }
 
-/* Ajusta el ícono de las migas de pan para que se centre en el encabezado colapsado */
-.sidebar.collapsed .d-flex.align-items-center.mb-3 {
-    justify-content: center !important; 
+.d-flex {
+  display: flex;
 }
-  /* Centra los íconos cuando está retraída */
-  .sidebar.collapsed .nav-link i {
-    margin-right: 0 !important;
-    font-size: 1.3rem;
-  }
 
-  /* Ajuste de avatar en modo colapsado */
-  .sidebar.collapsed .dropdown img {
-    margin: 0 auto;
-  }
-
-  .sidebar:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.1) 100%);
-    backdrop-filter: blur(25px) saturate(200%);
-  }
-
-  .sidebar a,
-  .sidebar .dropdown-item {
-    color: #1a1a1a !important;
-    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
-  }
-
-  .sidebar .nav-link {
-    border-radius: 10px;
-    margin-bottom: 4px;
-    transition: all 0.25s ease-in-out;
-    display: flex;
-    align-items: center;
-  }
-
-  .sidebar .nav-link.active {
-    background: linear-gradient(90deg, rgba(255, 140, 0, 0.85) 0%, rgba(255, 165, 0, 0.85) 100%);
-    color: #fff !important;
-    font-weight: 600;
-    box-shadow: 0 3px 15px rgba(255, 140, 0, 0.3);
-    transform: translateX(2px);
-  }
-
-  .sidebar .nav-link:not(.active):hover {
-    background-color: rgba(255, 255, 255, 0.3) !important;
-    transform: translateX(3px);
-  }
-
-  .sidebar .dropdown-menu {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
-  }
-/* --- Botón toggle (Versión ajustada) --- */
 .toggle-btn {
-    /* Eliminamos: position: fixed, top, left, z-index */
-    /* Lo convertimos en un ícono de alternancia simple. */
-    cursor: pointer;
-    transition: transform 0.3s ease; /* Mantenemos una transición suave */
-    /* Eliminamos el fondo circular para integrarlo al encabezado */
-    
-    /* Si el ícono está en la barra lateral, solo necesita ser un puntero: */
-    width: auto;
-    height: auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  cursor: pointer;
 }
 
-.toggle-btn:hover {
-    /* Solo aplicamos un ligero efecto visual al pasar el ratón */
-    transform: scale(1.1); 
-    opacity: 0.8;
-}
-
-/* Opcional: Si quieres que el icono 'gire' ligeramente al colapsar, puedes añadir: */
-/*
-.sidebar.collapsed .toggle-btn {
-    transform: rotate(180deg);
-}
-*/
-
-  .main-content {
-    margin-left: 280px;
-    transition: margin-left 0.4s ease-in-out;
-  }
-
-  .main-content.collapsed {
-    margin-left: 80px;
-  }
-
-  /* --- Liquid Glass Cards --- */
-  .card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(18px) saturate(180%);
-    -webkit-backdrop-filter: blur(18px) saturate(180%);
-    border-radius: 1rem;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-  }
-
-  .card-header {
-    background: rgba(255, 255, 255, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    font-weight: 600;
-    letter-spacing: 0.3px;
-  }
-
-  .btn-primary {
-    background: linear-gradient(90deg, #fd7e14 0%, #ffb347 100%);
-    border: none;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(253, 126, 20, 0.4);
-    transition: all 0.3s ease-in-out;
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(253, 126, 20, 0.5);
-    opacity: 0.95;
-  }
-
-  /* --- Liquid Glass Sidebar --- */
+/* --- Estilos Base del Sidebar --- */
 .sidebar {
+  width: var(--sidebar-width-expanded);
+  height: 100vh;
   position: fixed;
   top: 0;
-  bottom: 0;
   left: 0;
-  z-index: 1000;
-  width: 280px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-right: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 8px 0 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.4s ease-in-out;
-  
-  /* Permite el desplazamiento si el contenido es largo */
-  overflow-y: scroll; 
-
-  /* Oculta la barra de desplazamiento en IE y Edge antiguo */
-  -ms-overflow-style: none;  
-  /* Oculta la barra de desplazamiento en Firefox */
-  scrollbar-width: none; 
+  z-index: 1030;
+  transition: width 0.3s ease, transform 0.3s ease;
+  overflow-x: hidden; /* Oculta texto al colapsar */
+  overflow-y: auto; /* Permite scroll si el menú es largo */
 }
 
-/* Oculta la barra de desplazamiento en Chrome, Safari y Edge moderno */
-.sidebar::-webkit-scrollbar {
-    display: none;
+/* --- Estilos Base del Contenido --- */
+.main-content {
+  margin-left: var(--sidebar-width-expanded);
+  width: calc(100% - var(--sidebar-width-expanded));
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  padding-top: 0; 
 }
-/* Tu código para el resto del .sidebar continúa aquí... */
+.main-content > .p-4 {
+  padding-top: 1.5rem !important; 
+}
 
-  @media (max-width: 991.98px) {
-    .sidebar {
-      width: 0;
-      overflow: hidden;
-    }
+/* --- Efecto Hover (Solicitud 3) --- */
+/* Nivel Superior */
+.sidebar .nav-pills > .nav-item > .nav-link.text-dark:hover {
+  background-color: #e9ecef; /* Color suave de Bootstrap */
+}
+/* Nivel Submenu */
+.sidebar .nav-submenu .nav-link.text-dark:hover {
+  background-color: #dee2e6; /* Un poco más oscuro para el submenú */
+}
 
-    .sidebar.show {
-      width: 280px;
-    }
 
-    .toggle-btn {
-      left: 15px !important;
-    }
+/* =====================================================
+  1. MODO ESCRITORIO: COLAPSADO (.toggled)
+=====================================================
+*/
+.sidebar.toggled {
+  width: var(--sidebar-width-collapsed);
+  overflow: visible; /* IMPORTANTE: Permitir que los menús flotantes se salgan */
+}
+.sidebar.toggled .hide-on-collapse {
+  display: none;
+  opacity: 0;
+  white-space: nowrap;
+}
+.sidebar.toggled + .main-content {
+  margin-left: var(--sidebar-width-collapsed);
+  width: calc(100% - var(--sidebar-width-collapsed));
+}
 
-    .main-content {
-      margin-left: 0 !important;
-    }
+/* --- Lógica del Menú Flotante (Solo en escritorio) --- */
+
+.sidebar.toggled .nav-item {
+  position: relative;
+}
+
+.sidebar.toggled .collapse {
+  display: block !important; 
+  height: auto !important;
+  position: absolute;
+  left: 100%;
+  top: 0; /* <-- Alineación vertical con el ícono */
+  width: 230px;
+  z-index: 1040;
+  background-color: #ffffff;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.sidebar.toggled .nav-submenu {
+  position: static; 
+  padding: 0.5rem;
+  background-color: transparent;
+  padding-left: 0.5rem !important;
+}
+
+.sidebar.toggled .collapse.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.sidebar.toggled .nav-submenu .nav-link .hide-on-collapse {
+    display: inline; 
+    opacity: 1;
+}
+
+/* --- Iconos y flechas en modo colapsado --- */
+.sidebar.toggled .nav-link {
+  justify-content: center; 
+}
+.sidebar.toggled .nav-link .me-2 {
+  margin-right: 0 !important; 
+  font-size: 1.2rem;
+}
+.sidebar.toggled .nav-link.dropdown-toggle {
+   justify-content: center;
+}
+.sidebar.toggled .nav-link .sub-arrow {
+    display: none; 
+}
+
+/* ** NUEVO: Centrar el ícono de toggle (Solicitud 1) ** */
+.sidebar.toggled .d-flex.align-items-center {
+  justify-content: center;
+}
+.sidebar.toggled #sidebarToggle {
+  margin-right: 0 !important;
+  font-size: 1.2rem;
+}
+
+
+/* =====================================================
+  2. MODO MÓVIL (Pantallas <= 768px)
+=====================================================
+*/
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(calc(var(--sidebar-width-expanded) * -1));
+    width: var(--sidebar-width-expanded);
   }
+  .sidebar.toggled {
+    transform: translateX(0);
+    width: var(--sidebar-width-expanded);
+    overflow-x: hidden; 
+  }
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+  .sidebar.toggled + .main-content {
+    margin-left: 0;
+  }
+
+  /* Desactivar lógica flotante en móvil */
+  .sidebar.toggled .collapse {
+    position: static;
+    width: auto;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    opacity: 1;
+    visibility: visible;
+    transition: none;
+    pointer-events: auto;
+    display: none;
+  }
+  .sidebar.toggled .collapse.show {
+     display: block !important;
+  }
+  .sidebar.toggled .nav-submenu {
+    padding-left: 1.5rem !important; 
+  }
+  .sidebar .nav-submenu .nav-link {
+    padding-left: 0.5rem; 
+  }
+  
+  /* Overlay */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1029; 
+  }
+  .d-none {
+    display: none !important;
+  }
+}

@@ -58,17 +58,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/muestras/{muestra}/analizar', [MuestraController::class, 'showAnalisisForm'])->name('muestras.analizar.form');
     Route::post('/muestras/{muestra}/analizar', [MuestraController::class, 'storeAnalisis'])->name('muestras.analizar.store');
     // --- FIN: Rutas para Analisis de muestras ---
-    
 
     // --- INICIO: Rutas para Análisis de Horno (HF, HA, MCC) ---
-    // Ruta para MOSTRAR el formulario (acepta 'hf', 'ha', o 'mcc' como parámetro)
     Route::get('/analisis-horno/{tipo}', [AnalisisHornoController::class, 'create'])
-        ->where('tipo', 'hf|ha|mcc') // Restringe el parámetro a solo esos 3 valores
+        ->where('tipo', 'hf|ha|mcc')
         ->name('analisis-horno.create');
 
-    // Ruta para GUARDAR los datos del formulario (la lógica estará en el controlador)
     Route::post('/analisis-horno', [AnalisisHornoController::class, 'store'])
         ->name('analisis-horno.store');
+        
+    // ** NUEVA RUTA (Añade esta línea) **
+    // Usamos PATCH porque estamos "actualizando" el estatus, no borrando.
+    Route::patch('/analisis-horno/{registro}/eliminar', [AnalisisHornoController::class, 'destroy'])
+        ->name('analisis-horno.destroy');
     // --- FIN: Rutas para Análisis de Horno ---
 
 });

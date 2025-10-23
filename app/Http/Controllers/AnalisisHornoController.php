@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\OperAnalisisHorno;
-use App\Models\CatTecnicoHorno;
+use App\Models\OperAnalisisHorno; // Importa el modelo
+use App\Models\CatTecnicoHorno; // Importa el modelo
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -21,7 +21,7 @@ class AnalisisHornoController extends Controller
     ];
 
     /**
-     * Muestra el formulario dinámico para crear un nuevo análisis.
+     * Muestra el formulario y la tabla de registros.
      */
     public function create(string $tipo)
     {
@@ -31,19 +31,23 @@ class AnalisisHornoController extends Controller
 
         $infoTipo = $this->tiposAnalisis[$tipo];
 
-        // Cargar técnicos filtrados por el 'Apc' correspondiente
+        // 1. Datos para el Formulario
         $tecnicos = CatTecnicoHorno::where('Apc', $infoTipo['apc'])
                                     ->orderBy('NomTecnico')
                                     ->get();
 
-        // Cargar otros catálogos si los necesitas (ej. Grados, Hornos)
-        // $grados = CatGrados::all(); 
-
+        // 2. Datos para la Tabla (basado en los apc-table-*.php)
+        // Buscamos registros con el IdTipoAnalisis correspondiente Y que no estén eliminados (IdEstatusAnalisis != 5)
+        $analisisRegistrados = OperAnalisisHorno::where('IdTipoAnalisis', $infoTipo['id'])
+                                    ->where('IdEstatusAnalisis', '!=', 5) 
+                                    ->orderBy('Fecha', 'desc') // Ordenar por fecha descendente
+                                    ->get(); 
+        
         return view('analisis-horno.create', [
             'tipo' => $tipo, // 'hf', 'ha', o 'mcc'
             'titulo' => $infoTipo['nombre'],
             'tecnicos' => $tecnicos,
-            // 'grados' => $grados,
+            'analisisRegistrados' => $analisisRegistrados, // <-- ¡NUEVA VARIABLE!
         ]);
     }
 
@@ -99,14 +103,13 @@ class AnalisisHornoController extends Controller
         // --- Guardado en BD ---
         try {
             OperAnalisisHorno::create([
-                'Fecha' => Carbon::parse($request->input('Fecha')), // Asegurar formato
+                'Fecha' => Carbon::parse($request->input('Fecha')),
                 'Tecnico' => $request->input('Tecnico'),
                 'HORNO' => $request->input('HORNO'),
                 'Turno' => $request->input('Turno'),
                 'COLADA' => $request->input('COLADA'),
                 'GRADO' => $request->input('GRADO'),
                 
-                // Campos de elementos
                 'CaO' => $request->input('CaO'),
                 'MgO' => $request->input('MgO'),
                 'SiO2' => $request->input('SiO2'),
@@ -115,28 +118,56 @@ class AnalisisHornoController extends Controller
                 'FeO' => $request->input('FeO'),
                 'S' => $request->input('S'),
 
-                // Campos calculados y específicos
-                'IB2' => $request->input('IB2') ?? null, // Solo vendrá de HA y MCC
+                'IB2' => $request->input('IB2') ?? null, 
                 'IB3' => $request->input('IB3'),
                 'IB4' => $request->input('IB4'),
                 'TOTAL' => $request->input('TOTAL'),
-                'KgCalSiderurgica' => $request->input('KgCalSiderurgica') ?? null, // Solo vendrá de HF
-                'KgCalDolomitica' => $request->input('KgCalDolomitica') ?? null, // Solo vendrá de HF
+                'KgCalSiderurgica' => $request->input('KgCalSiderurgica') ?? null, 
+                'KgCalDolomitica' => $request->input('KgCalDolomitica') ?? null, 
                 
-                // Datos del sistema
                 'IdUsuario' => Auth::id(),
-                'NombreUsuario' => Auth::user()->username, // O Auth::user()->name
+                'NombreUsuario' => Auth::user()->username, // Asegúrate que tu modelo Usuario tenga 'username'
                 'IdTipoAnalisis' => $idTipoAnalisis,
                 'TipoMuestra' => $infoTipo['nombre'],
-                'IdEstatusAnalisis' => 2, // 2 = 'Completado' o 'Registrado'. Ajusta si es necesario.
+                'IdEstatusAnalisis' => 2, // 2 = Registrado/Completado
             ]);
 
-            // Redirige de vuelta al dashboard (o a una lista de análisis)
-            return redirect()->route('dashboard')->with('success', 'Análisis de ' . $infoTipo['nombre'] . ' registrado exitosamente.');
+            // Redirigir de vuelta a la misma página (para ver el nuevo registro en la tabla)
+            return redirect()->route('analisis-horno.create', ['tipo' => $tipo])
+                             ->with('success', 'Análisis de ' . $infoTipo['nombre'] . ' registrado exitosamente.');
 
         } catch (\Exception $e) {
-            // Log::error("Error al guardar análisis horno: " . $e->getMessage());
             return back()->withInput()->with('error', 'Ocurrió un error al guardar: ' . $e->getMessage());
         }
     }
+    
+    // <-- INICIO: MÉTODO AÑADIDO PARA "ELIMINAR" (SOFT DELETE) -->
+    /**
+     * Realiza un "soft delete" del registro cambiando el estatus a 5.
+     *
+     * @param \App\Models\OperAnalisisHorno $registro
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function destroy(OperAnalisisHorno $registro)
+    {
+        // 1. Validar que el usuario tenga permiso de Administrador
+        if (!Auth::user() || !Auth::user()->permiso || Auth::user()->permiso->Administrador != 1) {
+            return back()->with('error', 'No tienes permiso para realizar esta acción.');
+        }
+
+        try {
+            // 2. Actualizar el estatus a 5 (Eliminado)
+            $registro->IdEstatusAnalisis = 5;
+            $registro->save(); // Guardar el cambio
+
+            // 3. Redirigir de vuelta con un mensaje de éxito
+            return back()->with('success', 'Registro #' . $registro->IdRegistro . ' eliminado correctamente.');
+
+        } catch (\Exception $e) {
+            // Manejo de errores
+            // \Log::error("Error al eliminar registro: " . $e->getMessage()); // Opcional: registrar el error
+            return back()->with('error', 'No se pudo eliminar el registro.');
+        }
+    }
+    // <-- FIN: MÉTODO AÑADIDO -->
 }
