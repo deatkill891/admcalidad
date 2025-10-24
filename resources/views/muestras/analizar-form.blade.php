@@ -55,35 +55,30 @@
             <input type="hidden" id="humedad" name="humedad">
 
             <div class="row g-3">
-              @forelse($muestra->combinaciones as $combinacion)
-              @php
-              $elemento = $combinacion->elemento;
-              $min = $combinacion->ValMin;
-              $max = $combinacion->ValMax;
-              @endphp
+              @forelse($elementos_a_analizar as $elemento)
               <div class="col-md-4">
-                <label for="elemento-{{ $elemento->IdElemento }}" class="form-label fw-semibold">
-                  {{ $elemento->Nombre }}
+                <label for="elemento-{{ $elemento['IdElemento'] }}" class="form-label fw-semibold">
+                  {{ $elemento['Nombre'] }}
                 </label>
                 <input type="number" step="any" class="form-control analysis-input"
-                  id="elemento-{{ $elemento->IdElemento }}" name="resultados[{{ $elemento->IdElemento }}][valor]"
-                  placeholder="Límites: {{ $min }} - {{ $max }}" data-min="{{ $min }}" data-max="{{ $max }}"
-                  min="{{ $min }}" max="{{ $max }}" value="{{ old('resultados.' . $elemento->IdElemento . '.valor') }}"
-                  required>
+                  id="elemento-{{ $elemento['IdElemento'] }}" name="resultados[{{ $elemento['IdElemento'] }}][valor]"
+                  placeholder="Límites: {{ $elemento['ValMin'] }} - {{ $elemento['ValMax'] }}"
+                  data-min="{{ $elemento['ValMin'] }}" data-max="{{ $elemento['ValMax'] }}"
+                  min="{{ $elemento['ValMin'] }}" max="{{ $elemento['ValMax'] }}"
+                  value="{{ old('resultados.' . $elemento['IdElemento'] . '.valor') }}" required>
                 <div class="invalid-feedback">
-                  Valor fuera de rango (Debe estar entre {{ $min }} y {{ $max }}).
+                  Valor fuera de rango (Debe estar entre {{ $elemento['ValMin'] }} y {{ $elemento['ValMax'] }}).
                 </div>
               </div>
               @empty
               <div class="col-12">
                 <div class="alert alert-warning">
-                  No hay elementos de análisis configurados para este material.
+                  No hay elementos de análisis configurados para este material (según la lógica del controlador).
                 </div>
               </div>
               @endforelse
             </div>
-
-            @if($muestra->combinaciones->isNotEmpty())
+            @if(!empty($elementos_a_analizar))
             <div class="d-flex justify-content-end mt-4">
               <button type="submit" class="btn btn-success fw-bold px-4 py-2">
                 <i class="fas fa-save me-2"></i> Guardar Análisis
@@ -116,7 +111,7 @@
       });
     });
 
-    // --- NUEVO SCRIPT PARA OBTENER EL CLIMA ---
+    // --- SCRIPT PARA OBTENER EL CLIMA (Sin cambios) ---
     const apiKey = '{{ $openWeatherApiKey }}'; // Obtenemos la key del controlador
     const weatherInfo = document.getElementById('weather-info');
     const climaInput = document.getElementById('clima');

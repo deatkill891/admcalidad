@@ -160,7 +160,7 @@
         <a href="#" class="d-flex align-items-center text-decoration-none text-dark dropdown-toggle" id="dropdownUser"
           data-bs-toggle="dropdown" aria-expanded="false">
           <img src="https://i.pravatar.cc/32?u={{ Auth::id() }}" alt="" class="rounded-circle me-2 border">
-          <strong class="hide-on-collapse">{{ Auth::user()->username ?? 'Usuario' }}</strong>
+          <strong class="hide-on-collapse">{{ Auth::user()->email ?? 'email' }}</strong>
         </a>
         <ul class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser">
           <li><a class="dropdown-item" href="{{ route('profile.edit') }}">Perfil</a></li>
