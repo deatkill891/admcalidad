@@ -6,6 +6,7 @@ use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MuestraController;
 use App\Http\Controllers\AnalisisHornoController;
+// ¡Importante! Asegúrate que este controlador esté importado
 use App\Http\Controllers\ConfiguracionCorreoController;
 
 
