@@ -177,8 +177,7 @@ class MuestraController extends Controller
                 31 => ['min' => 0, 'max' => 100], // Cu
             ]
         ];
-
-        if (isset($criterios[$id_material])) {
+if (isset($criterios[$id_material])) {
             $reglas_material = $criterios[$id_material];
             if ($id_elemento !== null) {
                 return $reglas_material[$id_elemento] ?? null;
@@ -363,10 +362,14 @@ class MuestraController extends Controller
             }
         }
         
+        // LÓGICA COMENTADA: Ya no se cambia el estatus al abrir el formulario.
+        // El estatus solo debe cambiar al guardar el análisis (storeAnalisis) o al rechazar (rechazar).
+        /*
         if ($muestra->IdEstatusAnalisis == 1) { 
             $muestra->IdEstatusAnalisis = 4; // 4 = En Proceso
             $muestra->save();
         }
+        */
         
         $openWeatherApiKey = config('services.openweather.key');
         
