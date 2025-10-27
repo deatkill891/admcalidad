@@ -8,6 +8,9 @@ use App\Models\CatTecnicoHorno; // Importa el modelo
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Models\ProcesoCorreo; // <--- ¡AÑADIDO!
+use App\Mail\AnalisisCompletoMail; // <--- ¡AÑADIDO! (Asumiendo que lo usarás)
+use Illuminate\Support\Facades\Mail; // <--- ¡AÑADIDO!
 
 class AnalisisHornoController extends Controller
 {
@@ -15,9 +18,9 @@ class AnalisisHornoController extends Controller
      * Mapeo de los tipos de análisis para la lógica del controlador.
      */
     private $tiposAnalisis = [
-        'hf' => ['id' => 1, 'nombre' => 'Fusión (HF)', 'apc' => 1],
-        'ha' => ['id' => 2, 'nombre' => 'Afino (HA)', 'apc' => 2],
-        'mcc' => ['id' => 3, 'nombre' => 'Colada (MCC)', 'apc' => 3],
+        'hf' => ['id' => 1, 'nombre' => 'Fusión (HF)', 'apc' => 1, 'claveProceso' => 'HORNO_HF'], // Añadida claveProceso
+        'ha' => ['id' => 2, 'nombre' => 'Afino (HA)', 'apc' => 2, 'claveProceso' => 'HORNO_HA'], // Añadida claveProceso
+        'mcc' => ['id' => 3, 'nombre' => 'Colada (MCC)', 'apc' => 3, 'claveProceso' => 'HORNO_MCC'], // Añadida claveProceso
     ];
 
     /**
@@ -33,21 +36,20 @@ class AnalisisHornoController extends Controller
 
         // 1. Datos para el Formulario
         $tecnicos = CatTecnicoHorno::where('Apc', $infoTipo['apc'])
-                                    ->orderBy('NomTecnico')
-                                    ->get();
+                                        ->orderBy('NomTecnico')
+                                        ->get();
 
-        // 2. Datos para la Tabla (basado en los apc-table-*.php)
-        // Buscamos registros con el IdTipoAnalisis correspondiente Y que no estén eliminados (IdEstatusAnalisis != 5)
+        // 2. Datos para la Tabla
         $analisisRegistrados = OperAnalisisHorno::where('IdTipoAnalisis', $infoTipo['id'])
-                                    ->where('IdEstatusAnalisis', '!=', 5) 
-                                    ->orderBy('Fecha', 'desc') // Ordenar por fecha descendente
-                                    ->get(); 
+                                        ->where('IdEstatusAnalisis', '!=', 5) 
+                                        ->orderBy('Fecha', 'desc') 
+                                        ->get(); 
         
         return view('analisis-horno.create', [
-            'tipo' => $tipo, // 'hf', 'ha', o 'mcc'
+            'tipo' => $tipo, 
             'titulo' => $infoTipo['nombre'],
             'tecnicos' => $tecnicos,
-            'analisisRegistrados' => $analisisRegistrados, // <-- ¡NUEVA VARIABLE!
+            'analisisRegistrados' => $analisisRegistrados, 
         ]);
     }
 
@@ -102,7 +104,8 @@ class AnalisisHornoController extends Controller
 
         // --- Guardado en BD ---
         try {
-            OperAnalisisHorno::create([
+            // Guardamos la instancia creada para usarla después
+            $registro = OperAnalisisHorno::create([
                 'Fecha' => Carbon::parse($request->input('Fecha')),
                 'Tecnico' => $request->input('Tecnico'),
                 'HORNO' => $request->input('HORNO'),
@@ -132,42 +135,79 @@ class AnalisisHornoController extends Controller
                 'IdEstatusAnalisis' => 2, // 2 = Registrado/Completado
             ]);
 
-            // Redirigir de vuelta a la misma página (para ver el nuevo registro en la tabla)
+            // --- LÓGICA DE ENVÍO DE CORREO (¡MODIFICADA!) ---
+            try {
+                // Recargamos el registro con las relaciones necesarias para el correo
+                $registroCompleto = OperAnalisisHorno::with(['usuario']) // Añade más relaciones si tu Mailable las necesita
+                                                    ->find($registro->IdOperAnalisisHorno); // Usamos el ID del registro recién creado
+
+                // 1. Obtener la CLAVE del proceso desde nuestro array $infoTipo
+                $claveProceso = $infoTipo['claveProceso'] ?? null;
+                
+                // 2. Obtener la lista dinámica de correos desde la BD
+                $listaEmails = [];
+                if ($claveProceso) {
+                    $listaEmails = ProcesoCorreo::getRecipientsByProcess($claveProceso);
+                } else {
+                     \Log::warning("No se encontró clave de proceso para el tipo: {$tipo} en AnalisisHornoController@store");
+                }
+
+                // 3. (Opcional) Añadir correo del operador que registró
+                if ($registroCompleto->usuario && $registroCompleto->usuario->email) {
+                    $listaEmails[] = $registroCompleto->usuario->email;
+                }
+
+                // 4. Asegurarse de que no haya duplicados y filtrar nulos/vacíos
+                $listaEmails = array_unique(array_filter($listaEmails));
+                
+                if (count($listaEmails) > 0) {
+                    // ¡IMPORTANTE! Asumo que tu Mailable AnalisisCompletoMail puede manejar
+                    // tanto objetos Muestra como objetos OperAnalisisHorno.
+                    // Si no es así, necesitarás crear un Mailable específico para Análisis de Horno
+                    // o adaptar el existente.
+                    // También, el segundo parámetro ($reglas_material) no existe aquí, puedes pasar null o un array vacío.
+                    Mail::to($listaEmails)->send(new AnalisisCompletoMail($registroCompleto, [])); // Pasar array vacío como segundo parámetro
+                } else {
+                     \Log::info("No se enviaron correos para el proceso {$claveProceso} (Registro ID: {$registro->IdOperAnalisisHorno}). Lista de destinatarios vacía.");
+                }
+
+            } catch (\Exception $e) {
+                 \Log::error("Error al enviar correo de notificación de análisis de horno (Registro ID: {$registro->IdOperAnalisisHorno}): " . $e->getMessage());
+                // No detenemos el flujo principal, solo registramos el error de correo
+                // Podrías añadir un mensaje flash secundario si lo deseas.
+                 return redirect()->route('analisis-horno.create', ['tipo' => $tipo])
+                                ->with('success', 'Análisis registrado, pero hubo un error al enviar la notificación por correo.');
+            }
+             // --- FIN DE LA MODIFICACIÓN ---
+
+            // Redirigir de vuelta a la misma página
             return redirect()->route('analisis-horno.create', ['tipo' => $tipo])
-                             ->with('success', 'Análisis de ' . $infoTipo['nombre'] . ' registrado exitosamente.');
+                             ->with('success', 'Análisis de ' . $infoTipo['nombre'] . ' registrado y notificado exitosamente.');
 
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Ocurrió un error al guardar: ' . $e->getMessage());
+             \Log::error("Error al guardar análisis de horno ({$tipo}): " . $e->getMessage());
+            return back()->withInput()->with('error', 'Ocurrió un error al guardar el análisis.');
         }
     }
     
-    // <-- INICIO: MÉTODO AÑADIDO PARA "ELIMINAR" (SOFT DELETE) -->
     /**
      * Realiza un "soft delete" del registro cambiando el estatus a 5.
-     *
-     * @param \App\Models\OperAnalisisHorno $registro
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(OperAnalisisHorno $registro)
     {
-        // 1. Validar que el usuario tenga permiso de Administrador
         if (!Auth::user() || !Auth::user()->permiso || Auth::user()->permiso->Administrador != 1) {
             return back()->with('error', 'No tienes permiso para realizar esta acción.');
         }
 
         try {
-            // 2. Actualizar el estatus a 5 (Eliminado)
             $registro->IdEstatusAnalisis = 5;
-            $registro->save(); // Guardar el cambio
+            $registro->save(); 
 
-            // 3. Redirigir de vuelta con un mensaje de éxito
-            return back()->with('success', 'Registro #' . $registro->IdRegistro . ' eliminado correctamente.');
+            return back()->with('success', 'Registro #' . $registro->IdOperAnalisisHorno . ' eliminado correctamente.'); // Corregido: Usar IdOperAnalisisHorno
 
         } catch (\Exception $e) {
-            // Manejo de errores
-            // \Log::error("Error al eliminar registro: " . $e->getMessage()); // Opcional: registrar el error
+             \Log::error("Error al eliminar registro de análisis de horno (ID: {$registro->IdOperAnalisisHorno}): " . $e->getMessage());
             return back()->with('error', 'No se pudo eliminar el registro.');
         }
     }
-    // <-- FIN: MÉTODO AÑADIDO -->
 }

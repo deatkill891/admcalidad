@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Muestra;
 use App\Models\Material;
-use App\Models\Elemento; // <-- Importante: Asegúrate de que este modelo exista
+use App\Models\Elemento;
 use App\Models\ResultadoAnalisis;
 use App\Mail\AnalisisCompletoMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
+use App\Models\ProcesoCorreo;
 
 class MuestraController extends Controller
 {
@@ -177,20 +178,20 @@ class MuestraController extends Controller
                 31 => ['min' => 0, 'max' => 100], // Cu
             ]
         ];
-if (isset($criterios[$id_material])) {
+        if (isset($criterios[$id_material])) {
             $reglas_material = $criterios[$id_material];
             if ($id_elemento !== null) {
-                return $reglas_material[$id_elemento] ?? null;
+                // Asegurarse de que el id_elemento exista como clave antes de devolver
+                return isset($reglas_material[$id_elemento]) ? $reglas_material[$id_elemento] : null;
             }
             return $reglas_material;
         }
         return null;
     }
 
+
     /**
-     * ¡NUEVA FUNCIÓN!
      * Define qué campos (elementos) se MUESTRAN en el formulario.
-     * Lógica basada en 'elementosPorMaterial' de lab-form-analisis.php
      */
     private function obtenerCamposPorMaterial($id_material)
     {
@@ -215,7 +216,7 @@ if (isset($criterios[$id_material])) {
             '17' => [32, 48, 30, 40, 7, 29],
             '18' => [32, 29, 7, 30, 1],
             '19' => [20, 13],
-            '20' => [2, 3, 4, 5, 6, 7, 8, 9, 10, 16],
+            '20' => [2, 3, 4, 5, 6, 7, 8, 9, 10, 16], // Incluye IDs para Zn, Pb, Fe, Cd, Cu si son distintos
             '21' => [2, 3, 4, 7, 8, 10, 12, 13, 16, 17, 18, 20, 23, 24, 36, 37, 38, 39, 40],
             '22' => [41, 42, 43, 6, 43, 44, 14, 45, 16, 7, 46],
             '23' => [10, 17, 35, 36, 37, 39, 34, 18, 20, 47],
@@ -255,31 +256,43 @@ if (isset($criterios[$id_material])) {
 
     public function store(Request $request)
     {
+        // ... (sin cambios)
         $request->validate([
             'IdMaterial' => 'required|integer|exists:CatMateriales,IdMaterial',
             'Proveedor' => 'nullable|string|max:255',
             'Remision' => 'nullable|string|max:255',
+            // Añadir otras validaciones si son necesarias para los campos dinámicos
         ]);
-        Muestra::create([
-            'IdMaterial' => $request->IdMaterial,
-            'Proveedor' => $request->Proveedor,
-            'Remision' => $request->Remision,
-            'FechaRecibo' => now(),
-            'PlacaTractor' => $request->PlacaTractor,
-            'PlacaTolva' => $request->PlacaTolva,
-            'Tonelaje' => $request->Tonelaje,
-            'Solicitante' => $request->Solicitante,
-            'Area' => $request->Area,
-            'Identificacion' => $request->Identificacion,
-            'Analisis' => $request->Analisis,
-            'IdEstatusAnalisis' => 1, 'IdUsuarioOper' => Auth::id(),
-            'FechaRegistro' => now(), 
-        ]);
-        return redirect()->route('dashboard')->with('success', '¡Muestra registrada exitosamente!');
+
+        try {
+            Muestra::create([
+                'IdMaterial' => $request->IdMaterial,
+                'Proveedor' => $request->Proveedor,
+                'Remision' => $request->Remision,
+                'FechaRecibo' => now(), // Opcional si no se captura
+                'PlacaTractor' => $request->PlacaTractor,
+                'PlacaTolva' => $request->PlacaTolva,
+                'Tonelaje' => $request->Tonelaje,
+                'Solicitante' => $request->Solicitante,
+                'Area' => $request->Area,
+                'Identificacion' => $request->Identificacion,
+                'Analisis' => $request->Analisis,
+                'IdEstatusAnalisis' => 1, // 1 = En Espera
+                'IdUsuarioOper' => Auth::id(),
+                'FechaRegistro' => now(),
+            ]);
+            return redirect()->route('dashboard')->with('success', '¡Muestra registrada exitosamente!');
+        } catch (\Exception $e) {
+            Log::error("Error al registrar muestra: " . $e->getMessage());
+            return redirect()->route('dashboard')
+                             ->withErrors(['general' => 'No se pudo registrar la muestra. Inténtalo de nuevo.'])
+                             ->withInput();
+        }
     }
 
     public function analisisIndex()
     {
+        // ... (sin cambios)
         $muestrasEnEspera = Muestra::with(['material', 'usuarioOper'])
                                    ->where('IdEstatusAnalisis', 1)
                                    ->orderBy('FechaRegistro', 'asc')
@@ -289,12 +302,14 @@ if (isset($criterios[$id_material])) {
 
     public function fetchPendientes()
     {
+        // ... (sin cambios)
         $muestrasEnEspera = Muestra::with(['material', 'usuarioOper'])
-                                   ->where('IdEstatusAnalisis', 1) 
+                                   ->where('IdEstatusAnalisis', 1)
                                    ->orderBy('FechaRegistro', 'asc')
                                    ->get()
-                                   ->toArray();
+                                   ->toArray(); // Convertir a array para mapeo simple
 
+        // Mapeo manual para asegurar la estructura JSON deseada y evitar carga innecesaria
         $muestrasMapeadas = array_map(function($muestra) {
             return [
                 'IdMuestra' => $muestra['IdMuestra'],
@@ -308,100 +323,116 @@ if (isset($criterios[$id_material])) {
 
         return response()->json($muestrasMapeadas);
     }
-    
+
     public function rechazar(Muestra $muestra)
     {
+        // ... (sin cambios, considera añadir try-catch)
         if ($muestra) {
-            $muestra->IdEstatusAnalisis = 3; // 3 = Rechazado
-            $muestra->save();
-            return redirect()->route('dashboard')->with('success', 'Muestra ' . $muestra->IdMuestra . ' ha sido rechazada.');
+            try {
+                $muestra->IdEstatusAnalisis = 3; // 3 = Rechazado
+                $muestra->save();
+                // Opcional: Notificar por correo el rechazo
+                return redirect()->route('dashboard')->with('success', 'Muestra ' . $muestra->IdMuestra . ' ha sido rechazada.');
+            } catch (\Exception $e) {
+                 Log::error("Error al rechazar muestra ID {$muestra->IdMuestra}: " . $e->getMessage());
+                 return redirect()->route('dashboard')->with('error', 'No se pudo rechazar la muestra.');
+            }
         }
         return redirect()->route('dashboard')->with('error', 'No se pudo encontrar la muestra a rechazar.');
     }
 
     /**
-     * ¡MÉTODO ACTUALIZADO!
      * Muestra el formulario de análisis con los campos correctos.
      */
     public function showAnalisisForm(Muestra $muestra)
     {
-        $muestra->load('material');
+        // ... (sin cambios, la lógica de cambio de estatus ya está comentada)
+        try {
+            $muestra->load('material'); // Cargar relación si no viene por Route Model Binding eager loading
 
-        // 1. OBTENER CAMPOS A MOSTRAR (Lógica de JS que proporcionaste)
-        $ids_elementos_a_mostrar = $this->obtenerCamposPorMaterial($muestra->IdMaterial);
+            $ids_elementos_a_mostrar = $this->obtenerCamposPorMaterial($muestra->IdMaterial);
+            $reglas_validacion = $this->obtenerCriterios($muestra->IdMaterial);
+            $elementos_a_analizar = [];
 
-        // 2. OBTENER REGLAS DE VALIDACIÓN (Lógica de $criterios)
-        $reglas_validacion = $this->obtenerCriterios($muestra->IdMaterial);
-        
-        $elementos_a_analizar = [];
+            if (!empty($ids_elementos_a_mostrar) && !is_null($reglas_validacion)) {
+                $elementos_db = Elemento::whereIn('IdElemento', $ids_elementos_a_mostrar)
+                                        ->get()
+                                        ->keyBy('IdElemento');
 
-        if (!empty($ids_elementos_a_mostrar)) {
-            
-            // 3. Obtener los nombres de los elementos de la BD
-            $elementos_db = Elemento::whereIn('IdElemento', $ids_elementos_a_mostrar)
-                                    ->get()
-                                    ->keyBy('IdElemento');
-
-            // 4. Combinar la lista de campos con sus reglas de validación
-            foreach ($ids_elementos_a_mostrar as $id) {
-                
-                // Asegurarse de que el elemento exista en la BD
-                if (isset($elementos_db[$id])) {
-                    
-                    // Buscar sus reglas de validación (si existen)
-                    // Si un campo se muestra pero NO tiene criterio, usamos 0-100 como default
-                    $limites = $reglas_validacion[$id] ?? ['min' => 0, 'max' => 100]; 
-
-                    $elementos_a_analizar[] = [
-                        'IdElemento' => $id,
-                        'Nombre' => $elementos_db[$id]->Nombre,
-                        'ValMin' => $limites['min'],
-                        'ValMax' => $limites['max']
-                    ];
+                foreach ($ids_elementos_a_mostrar as $id) {
+                    if (isset($elementos_db[$id])) {
+                        // Usamos isset() para verificar si hay regla específica para este elemento
+                        $limites = isset($reglas_validacion[$id]) ? $reglas_validacion[$id] : ['min' => 0, 'max' => 100];
+                        $elementos_a_analizar[] = [
+                            'IdElemento' => $id,
+                            'Nombre' => $elementos_db[$id]->Nombre,
+                            'ValMin' => $limites['min'] ?? 0, // Default a 0 si no está definido
+                            'ValMax' => $limites['max'] ?? 100 // Default a 100 si no está definido
+                        ];
+                    }
                 }
+            } else {
+                 Log::warning("No se encontraron campos o criterios para el material ID: {$muestra->IdMaterial} en la muestra ID: {$muestra->IdMuestra}");
             }
+
+            // Lógica comentada para no cambiar estatus al abrir
+            /*
+            if ($muestra->IdEstatusAnalisis == 1) {
+                $muestra->IdEstatusAnalisis = 4; // 4 = En Proceso
+                $muestra->save();
+            }
+            */
+
+            $openWeatherApiKey = config('services.openweather.key');
+
+            return view('muestras.analizar-form', compact('muestra', 'elementos_a_analizar', 'openWeatherApiKey'));
+
+        } catch (\Exception $e) {
+            Log::error("Error al mostrar formulario de análisis para muestra ID {$muestra->IdMuestra}: " . $e->getMessage());
+            return redirect()->route('dashboard')->with('error', 'No se pudo cargar el formulario de análisis.');
         }
-        
-        // LÓGICA COMENTADA: Ya no se cambia el estatus al abrir el formulario.
-        // El estatus solo debe cambiar al guardar el análisis (storeAnalisis) o al rechazar (rechazar).
-        /*
-        if ($muestra->IdEstatusAnalisis == 1) { 
-            $muestra->IdEstatusAnalisis = 4; // 4 = En Proceso
-            $muestra->save();
-        }
-        */
-        
-        $openWeatherApiKey = config('services.openweather.key');
-        
-        // 5. Pasar la lista correcta a la vista
-        return view('muestras.analizar-form', compact('muestra', 'elementos_a_analizar', 'openWeatherApiKey'));
     }
 
     /**
-     * Guarda los resultados del análisis en la base de datos Y ENVÍA EL CORREO.
-     * (Este método NO necesita cambios, ya usa $criterios para validar)
+     * Guarda los resultados del análisis en la BD y envía correo.
+     * ¡¡MÉTODO CON LÓGICA DE CORREO ACTUALIZADA!!
      */
     public function storeAnalisis(Request $request, Muestra $muestra)
     {
+        // --- Validación (SIN CAMBIOS) ---
         $reglas_material = $this->obtenerCriterios($muestra->IdMaterial);
         $rules = [];
         $messages = [];
-        $elementos_map = [];
+        $elementos_map = []; // Para lógica Polvo de Zinc
 
         if ($reglas_material) {
-            $ids_elementos = array_keys($reglas_material);
-            $elementos = Elemento::whereIn('IdElemento', $ids_elementos)->get()->keyBy('IdElemento');
-            $elementos_map = $elementos; // Guardamos el mapa para la lógica de Polvo de Zinc
+            $ids_elementos_solicitados = array_keys($request->input('resultados', [])); // IDs que vienen del form
+            $elementos_db_info = Elemento::whereIn('IdElemento', $ids_elementos_solicitados)->get()->keyBy('IdElemento');
 
-            foreach ($reglas_material as $idElemento => $limites) {
-                // Validamos SÓLO si el campo fue enviado (está en $request->resultados)
-                if (isset($request->resultados[$idElemento])) {
-                    $nombre = $elementos[$idElemento]->Nombre ?? "Elemento $idElemento";
-                    $min = $limites['min'];
-                    $max = $limites['max'];
+            foreach ($ids_elementos_solicitados as $idElemento) {
+                // Solo validar si el elemento tiene criterios definidos
+                if (isset($reglas_material[$idElemento])) {
+                    $limites = $reglas_material[$idElemento];
+                    $nombre = $elementos_db_info[$idElemento]->Nombre ?? "Elemento $idElemento";
+                    $min = $limites['min'] ?? 0;
+                    $max = $limites['max'] ?? 100;
 
                     $rules["resultados.{$idElemento}.valor"] = "required|numeric|min:{$min}|max:{$max}";
-                    $messages["resultados.{$idElemento}.valor.*"] = "El valor para {$nombre} debe estar entre {$min} y {$max}.";
+                    $messages["resultados.{$idElemento}.valor.required"] = "El valor para {$nombre} es requerido.";
+                    $messages["resultados.{$idElemento}.valor.numeric"] = "El valor para {$nombre} debe ser numérico.";
+                    $messages["resultados.{$idElemento}.valor.min"] = "El valor para {$nombre} debe ser al menos {$min}.";
+                    $messages["resultados.{$idElemento}.valor.max"] = "El valor para {$nombre} no debe exceder {$max}.";
+
+                    // Guardar info para lógica Polvo de Zinc si es necesario
+                    if(isset($elementos_db_info[$idElemento])) {
+                        $elementos_map[$idElemento] = $elementos_db_info[$idElemento];
+                    }
+                } else if (isset($request->resultados[$idElemento]['valor'])) {
+                    // Si se envía un valor pero no hay criterio, al menos validar que sea numérico
+                     $nombre = $elementos_db_info[$idElemento]->Nombre ?? "Elemento $idElemento";
+                     $rules["resultados.{$idElemento}.valor"] = "required|numeric";
+                     $messages["resultados.{$idElemento}.valor.required"] = "El valor para {$nombre} es requerido.";
+                     $messages["resultados.{$idElemento}.valor.numeric"] = "El valor para {$nombre} debe ser numérico.";
                 }
             }
         }
@@ -412,69 +443,133 @@ if (isset($criterios[$id_material])) {
         $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput(); 
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        foreach ($request->resultados as $idElemento => $resultado) {
-            if (isset($resultado['valor']) && is_numeric($resultado['valor'])) {
-                
-                $valor_final = (float) $resultado['valor'];
-                
-                // Lógica de cálculo de Polvo de Zinc (Material ID 20)
-                if ($muestra->IdMaterial == 20 && isset($elementos_map[$idElemento])) {
-                    $nombreElemento = $elementos_map[$idElemento]->Nombre;
-                    
-                    switch ($nombreElemento) {
-                        case 'Zn': $valor_final = round($valor_final * 0.8, 3); break;
-                        case 'Pb': $valor_final = round($valor_final * 0.93, 3); break;
-                        case 'Fe': $valor_final = round($valor_final * 0.7, 3); break;
-                        case 'Cd': $valor_final = round($valor_final * 0.88, 3); break;
-                        case 'Cu': $valor_final = round($valor_final * 0.8, 3); break;
+        // --- Guardado de Resultados (SIN CAMBIOS SIGNIFICATIVOS) ---
+        try {
+            DB::transaction(function () use ($request, $muestra, $elementos_map) {
+                // Borrar resultados anteriores por si se re-analiza (opcional)
+                // ResultadoAnalisis::where('IdMuestra', $muestra->IdMuestra)->delete();
+
+                foreach ($request->resultados as $idElemento => $resultado) {
+                    // Guardar solo si se envió un valor numérico
+                    if (isset($resultado['valor']) && is_numeric($resultado['valor'])) {
+                        $valor_final = (float) $resultado['valor'];
+
+                        // Lógica Polvo de Zinc (Material ID 20)
+                        if ($muestra->IdMaterial == 20 && isset($elementos_map[$idElemento])) {
+                            $nombreElemento = $elementos_map[$idElemento]->Nombre;
+                            switch ($nombreElemento) {
+                                case 'Zn': $valor_final = round($valor_final * 0.8, 3); break;
+                                case 'Pb': $valor_final = round($valor_final * 0.93, 3); break;
+                                case 'Fe': $valor_final = round($valor_final * 0.7, 3); break;
+                                case 'Cd': $valor_final = round($valor_final * 0.88, 3); break;
+                                case 'Cu': $valor_final = round($valor_final * 0.8, 3); break;
+                                // Añadir más casos si hay otros elementos afectados
+                            }
+                        }
+
+                        ResultadoAnalisis::create([
+                            'IdMuestra' => $muestra->IdMuestra,
+                            'IdElemento' => $idElemento,
+                            'Valor' => $valor_final,
+                            'FechaRegistro' => now(), // Fecha en que se guarda este resultado específico
+                        ]);
                     }
                 }
 
-                ResultadoAnalisis::create([
-                    'IdMuestra' => $muestra->IdMuestra,
-                    'IdElemento' => $idElemento,
-                    'Valor' => $valor_final,
-                    'FechaRegistro' => now(),
-                ]);
-            }
+                // Actualizar la muestra principal
+                $muestra->IdEstatusAnalisis = 2; // 2 = Analizado
+                $muestra->IdUsuarioAnal = Auth::id();
+                $muestra->FechaAnalisis = now(); // Fecha en que se completa el análisis
+                $muestra->Clima = $request->input('clima', null); // Usar null si no viene
+                $muestra->Humedad = $request->input('humedad', null);
+                $muestra->save();
+            }); // Fin de la transacción
+
+        } catch (\Exception $e) {
+            Log::error("Error al guardar resultados de análisis para Muestra ID {$muestra->IdMuestra}: " . $e->getMessage());
+            return redirect()->back()
+                             ->withErrors(['general' => 'Ocurrió un error al guardar los resultados. Inténtalo de nuevo.'])
+                             ->withInput();
         }
 
-        $muestra->IdEstatusAnalisis = 2; // 2 = Analizado
-        $muestra->IdUsuarioAnal = Auth::id(); 
-        $muestra->FechaAnalisis = now();
-        $muestra->Clima = $request->input('clima', 'N/A');
-        $muestra->Humedad = $request->input('humedad', 'N/A');
-        $muestra->save();
 
-        // --- LÓGICA DE ENVÍO DE CORREO ---
+        // --- LÓGICA DE ENVÍO DE CORREO (ACTUALIZADA con TO y CC) ---
         try {
-            // Recargamos la muestra con TODAS las relaciones
+            // Recargamos la muestra con relaciones necesarias para el correo
             $muestraCompleta = Muestra::with(['material', 'usuarioOper', 'resultados.elemento'])
-                                        ->find($muestra->IdMMuestra);
+                                        ->find($muestra->IdMuestra); // Asegúrate que el ID es correcto
 
-            // Replicamos la lista de correos de 'send-analysis-email.php'
-            $listaEmails = [
-                'dnavarro@deacero.com',
-                'BSERRATO@deacero.com'
-            ];
-            
-            // Añadimos el email del usuario que registró la muestra
-            if ($muestraCompleta->usuarioOper && $muestraCompleta->usuarioOper->email) {
-                $listaEmails[] = $muestraCompleta->usuarioOper->email;
+            if (!$muestraCompleta) {
+                Log::error("No se encontró la Muestra ID {$muestra->IdMuestra} después de guardar para enviar correo.");
+                 return redirect()->route('dashboard')->with('success', 'Análisis guardado, pero no se encontró la muestra para enviar notificación.');
             }
 
-            if (count($listaEmails) > 0) {
-                // Pasamos los límites (reglas) al Mailable
-                Mail::to($listaEmails)->send(new AnalisisCompletoMail($muestraCompleta, $reglas_material ?? []));
+            // 1. Definir la CLAVE del proceso
+            $claveProceso = 'MUESTRA_COMPLETA'; // Debe coincidir con la clave en 'cat_tipos_proceso'
+
+            // 2. Obtener AMBAS listas de correos ('to' y 'cc')
+            $recipients = ProcesoCorreo::getRecipientsByProcess($claveProceso);
+            $listaTo = $recipients['to'] ?? [];
+            $listaCc = $recipients['cc'] ?? [];
+
+            // 3. (Opcional) Añadir el usuario que registró a la lista TO
+            if ($muestraCompleta->usuarioOper && $muestraCompleta->usuarioOper->email) {
+                // Evita añadirlo si ya está en la lista CC para no duplicar
+                if(!in_array($muestraCompleta->usuarioOper->email, $listaCc)) {
+                    $listaTo[] = $muestraCompleta->usuarioOper->email;
+                }
+            }
+
+            // 4. Limpiar duplicados y nulos/vacíos de AMBAS listas
+            $listaTo = array_values(array_unique(array_filter($listaTo))); // array_values para reindexar
+            $listaCc = array_values(array_unique(array_filter($listaCc)));
+
+            // 5. Asegurarse de que no enviemos CC si TO está vacío
+            if (empty($listaTo)) {
+                Log::info("No hay destinatarios principales (TO) para el proceso {$claveProceso} (Muestra ID: {$muestra->IdMuestra}). No se envió correo.");
+                // Opcional: Si no hay TO, mover CC a TO
+                 if (!empty($listaCc)) {
+                    Log::info("Moviendo destinatarios CC a TO para Muestra ID: {$muestra->IdMuestra}");
+                    $listaTo = $listaCc;
+                    $listaCc = [];
+                 }
+            }
+
+            // 6. Enviar el correo usando to() y cc()
+            if (!empty($listaTo)) {
+                // Obtener las reglas nuevamente para pasarlas al Mailable
+                $reglas_para_mail = $this->obtenerCriterios($muestraCompleta->IdMaterial) ?? [];
+
+                $mailInstance = Mail::to($listaTo);
+
+                // Solo añadir CC si la lista no está vacía
+                if (!empty($listaCc)) {
+                    // Asegurarse que nadie esté en TO y CC al mismo tiempo (Laravel podría manejarlo, pero es buena práctica)
+                    $listaCc_final = array_diff($listaCc, $listaTo);
+                    if (!empty($listaCc_final)){
+                        $mailInstance->cc($listaCc_final);
+                    }
+                }
+
+                $mailInstance->send(new AnalisisCompletoMail($muestraCompleta, $reglas_para_mail));
+                 Log::info("Correo enviado para Muestra ID {$muestra->IdMuestra}. TO: " . implode(', ', $listaTo) . (empty($listaCc_final) ? "" : " CC: " . implode(', ', $listaCc_final)) );
             }
 
         } catch (\Exception $e) {
-            return redirect()->route('dashboard')->with('success', 'Análisis guardado, pero hubo un error al enviar el correo: ' . $e->getMessage());
+            // Error específico en el envío de correo, pero el análisis se guardó
+            Log::error("Error al enviar correo para Muestra ID {$muestra->IdMuestra}: " . $e->getMessage());
+            // Adjuntar el error al mensaje flash
+            session()->flash('warning', 'Análisis guardado, pero hubo un error al enviar la notificación por correo: ' . $e->getMessage());
+            // No usamos return aquí para que la redirección final ocurra
         }
+        // --- FIN ACTUALIZACIÓN DE CORREO ---
 
-        return redirect()->route('dashboard')->with('success', 'Análisis de la muestra ' . $muestra->IdMuestra . ' guardado y notificado por correo.');
-    }
-}
+        // Redirección final (se ejecuta incluso si falló el correo)
+        // El mensaje de 'warning' se mostrará junto con el de 'success' si ambos existen
+        return redirect()->route('dashboard')->with('success', 'Análisis de la muestra ' . $muestra->IdMuestra . ' guardado exitosamente.');
+    } // Fin storeAnalisis
+
+} // Fin MuestraController

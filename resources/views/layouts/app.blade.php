@@ -100,12 +100,16 @@
         @if(Auth::user() && Auth::user()->permiso && Auth::user()->permiso->Administrador == 1)
         <li class="nav-item mb-1">
           <a href="#admin-submenu" data-bs-toggle="collapse"
-            class="nav-link {{ request()->routeIs('usuarios.*') ? 'active' : 'text-dark' }} rounded-3 dropdown-toggle"
-            aria-expanded="{{ request()->routeIs('usuarios.*') ? 'true' : 'false' }}">
+            {{-- Modificado para incluir la ruta de correos en el 'active' --}}
+            class="nav-link {{ request()->routeIs('usuarios.*') || request()->routeIs('config.correos.*') ? 'active' : 'text-dark' }} rounded-3 dropdown-toggle"
+            aria-expanded="{{ request()->routeIs('usuarios.*') || request()->routeIs('config.correos.*') ? 'true' : 'false' }}">
             <span> <i class="bi bi-shield-lock me-2"></i> <span class="hide-on-collapse">Admin</span> </span>
             <i class="bi bi-chevron-down sub-arrow hide-on-collapse"></i>
           </a>
-          <div class="collapse {{ request()->routeIs('usuarios.*') ? 'show' : '' }}" id="admin-submenu">
+          {{-- Modificado para incluir la ruta de correos en el 'show' --}}
+          <div
+            class="collapse {{ request()->routeIs('usuarios.*') || request()->routeIs('config.correos.*') ? 'show' : '' }}"
+            id="admin-submenu">
             <ul class="nav flex-column mt-1 nav-submenu rounded-2">
               <li class="nav-item">
                 <a href="{{ route('usuarios.index') }}"
@@ -113,6 +117,18 @@
                   <i class="bi bi-person-workspace me-2"></i> <span class="hide-on-collapse">Usuarios</span>
                 </a>
               </li>
+
+              {{-- ***** INICIO DE LA MODIFICACIÓN (PASO 2.5) ***** --}}
+              <li class="nav-item">
+                <a href="{{ route('config.correos.index') }}"
+                  {{-- Corregido: 'config.correos.*' en lugar de 'Correos.*' --}}
+                  class="nav-link {{ request()->routeIs('config.correos.*') ? 'active' : 'text-dark' }} rounded-3">
+                  {{-- Corregido: Ícono cambiado para diferenciarlo --}}
+                  <i class="bi bi-envelope-at me-2"></i> <span class="hide-on-collapse">Correos</span>
+                </a>
+              </li>
+              {{-- ***** FIN DE LA MODIFICACIÓN ***** --}}
+
             </ul>
           </div>
         </li>
@@ -223,6 +239,10 @@
 
   <script src="{{ asset('js/original.js') }}"></script>
 
+  {{-- En resources/views/layouts/app.blade.php (ejemplo) --}}
+  ...
+  <script src="{{ asset('js/app.js') }}" defer></script> {{-- O tu JS principal --}}
+  @stack('scripts') {{-- <-- ASEGÚRATE QUE ESTA LÍNEA EXISTA AQUÍ --}}
 </body>
 
 </html>
