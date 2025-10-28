@@ -2,9 +2,9 @@
   {{-- Incluir Font Awesome --}}
   <script src="https://kit.fontawesome.com/9d1bcc908a.js" crossorigin="anonymous"></script>
 
-  {{-- ** NUEVO: Select2 CSS y jQuery (si no está en el layout) ** --}}
+  {{-- ** Select2 CSS y jQuery ** --}}
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> {{-- Asegúrate que jQuery se cargue --}}
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
   {{-- Encabezado de la página --}}
   <x-slot name="header">
@@ -156,75 +156,108 @@
     </div>
   </div>
 
-  {{-- ** NUEVO: Select2 JS (si no está en el layout) ** --}}
+  {{-- ** MODAL PARA IMPRIMIR ETIQUETA ** --}}
+  <div class="modal fade" id="modalImprimirEtiqueta" tabindex="-1" aria-labelledby="modalImprimirLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow-lg">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title fw-bold" id="modalImprimirLabel">
+            <i class="fas fa-print me-2 text-primary"></i> Impresión de Etiqueta
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body py-4">
+          <p class="text-center fs-5">¿Deseas imprimir la etiqueta para la muestra registrada?</p>
+        </div>
+        <div class="modal-footer border-top-0 d-flex justify-content-center">
+          <button type="button" class="btn btn-secondary fw-bold px-4 py-2" data-bs-dismiss="modal"
+            id="btn-no-imprimir">
+            No, cerrar
+          </button>
+          <button type="button" class="btn btn-primary fw-bold px-4 py-2" id="btn-si-imprimir">
+            <i class="fas fa-check me-2"></i> Sí, imprimir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  {{-- ** Select2 JS ** --}}
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-  {{-- SCRIPT JAVASCRIPT --}}
+  {{-- SCRIPT JAVASCRIPT CORREGIDO Y ROBUSTO --}}
   <script>
-  $(document).ready(function() { // Usamos $(document).ready de jQuery ya que Select2 lo necesita
+  $(document).ready(function() {
 
     // === INICIALIZACIÓN DE SELECT2 ===
-    // Aplicar Select2 a todos los selects con la clase 'select2-enable'
     $('.select2-enable').select2({
       placeholder: "Seleccione un material...",
-      allowClear: true // Opcional: permite borrar la selección
+      allowClear: true
     });
 
-    // === Lógica para el formulario dinámico ===
-    const materialSelect = $('#IdMaterial'); // Seleccionar con jQuery
+    // === Lógica para el formulario dinámico (MAXIMIZANDO LA COMPATIBILIDAD) ===
+    const materialSelect = $('#IdMaterial');
     const grupoVehicular = $('#grupo-vehicular');
     const grupoInterno = $('#grupo-interno');
     const grupoInsumos = $('#grupo-insumos');
     const idsVehicular = ['1', '2', '3', '14', '15', '16', '17', '18'];
     const idsInterno = ['13'];
+    const allGroups = [grupoVehicular, grupoInterno, grupoInsumos];
 
     function toggleFields() {
-      // Si el select no existe (porque el usuario no tiene permisos), salir.
+      // 1. Validar que el elemento exista
       if (!materialSelect.length) return;
 
-      const selectedId = materialSelect.val(); // Usar .val() con jQuery
-
-      // Ocultar todos los grupos
-      if (grupoVehicular.length) grupoVehicular.hide();
-      if (grupoInterno.length) grupoInterno.hide();
-      if (grupoInsumos.length) grupoInsumos.hide();
-
-      // Deshabilitar todos los inputs dentro de #campos-dinamicos
-      const dynamicInputs = $('#campos-dinamicos input');
-      if (dynamicInputs.length > 0) {
-        dynamicInputs.prop('disabled', true); // Usar .prop() con jQuery
-      }
-
+      const selectedId = materialSelect.val();
       let grupoActivo = null;
+
+      // 2. Determinar el grupo activo
       if (idsVehicular.includes(selectedId)) {
         grupoActivo = grupoVehicular;
       } else if (idsInterno.includes(selectedId)) {
         grupoActivo = grupoInterno;
       } else if (selectedId) {
+        // Cualquier otro material usa Insumos
         grupoActivo = grupoInsumos;
       }
 
-      if (grupoActivo && grupoActivo.length) {
-        grupoActivo.css('display', 'flex'); // Mostrar usando display:flex
-        // Habilitar los inputs dentro del grupo activo
-        grupoActivo.find('input').prop('disabled', false); // Usar .find() y .prop()
-      }
+      // 3. Iterar sobre todos los grupos para aplicar el estado
+      allGroups.forEach(group => {
+        if (group.length) {
+          // Comparamos el ID del grupo con el ID del grupo activo
+          const isActive = (group.attr('id') === grupoActivo?.attr('id'));
+
+          if (isActive) {
+            // Mostrar el grupo activo
+            group.css('display', 'flex');
+            // HABILITAR sus inputs para que se envíen
+            group.find('input').prop('disabled', false);
+          } else {
+            // Ocultar el grupo inactivo
+            group.hide();
+            // DESHABILITAR sus inputs para que NO se envíen (esto es crucial)
+            group.find('input').prop('disabled', true);
+          }
+        }
+      });
     }
 
-    // Select2 dispara el evento 'change' estándar, así que esto debería funcionar
     materialSelect.on('change', toggleFields);
 
-    // Llamada inicial
+    // Llamada inicial para aplicar la lógica al cargar con old()
     toggleFields();
     // === FIN Lógica formulario dinámico ===
 
 
-    // === Lógica para la actualización en vivo de la lista de espera (Sin cambios, pero adaptado a jQuery ready) ===
+    // === Lógica para la actualización en vivo de la lista de espera ===
     const tablaEsperaBody = document.getElementById('tabla-espera-body');
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
 
     async function actualizarListaEspera() {
+      // ... (Tu código de actualización en vivo sin cambios) ...
       try {
         const scrollParent = tablaEsperaBody?.parentElement;
         const scrollPos = scrollParent ? scrollParent.scrollTop : 0;
@@ -258,10 +291,10 @@
                  <td><strong>${muestra.IdMuestra}</strong></td> <td>${materialNombre}</td> <td>${fechaRegistro}</td>
                  <td>${proveedorSolicitante}</td> <td>${usuarioNombre}</td>
                  <td>
-                   <a href="${urlAnalizar}" class="btn btn-sm btn-primary" title="Iniciar Análisis"><i class="fas fa-play me-1"></i> Analizar</a>
+                   <a href="${urlAnalizar}" class="btn btn-sm btn-outline-success px-3 me-1" title="Iniciar Análisis"><i class="fas fa-play me-1"></i> Analizar</a>
                    <form action="${urlRechazar}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de que deseas rechazar esta muestra?');">
                      <input type="hidden" name="_token" value="${csrfToken}"> <input type="hidden" name="_method" value="PATCH">
-                     <button type="submit" class="btn btn-sm btn-danger" title="Rechazar Muestra"><i class="fas fa-times"></i></button>
+                     <button type="submit" class="btn btn-sm btn-outline-danger px-3" title="Rechazar Muestra"><i class="fas fa-times"></i></button>
                    </form>
                  </td>
                </tr>`;
@@ -287,6 +320,29 @@
       console.warn("Actualización en vivo desactivada (tabla o token no encontrados).");
     }
     // === FIN Lógica actualización en vivo ===
+
+
+    // === LÓGICA MODAL IMPRESIÓN ===
+    @if(session('show_print_modal') && session('print_label_url'))
+
+    const printModalElement = document.getElementById('modalImprimirEtiqueta');
+    // Asegúrate de que 'bootstrap' esté definido (asumiendo que se carga en app-layout)
+    const printModal = new bootstrap.Modal(printModalElement);
+    const printUrl = '{{ session('
+    print_label_url ') }}';
+
+    const btnSiImprimir = document.getElementById('btn-si-imprimir');
+    if (btnSiImprimir) {
+      btnSiImprimir.addEventListener('click', function() {
+        window.open(printUrl, '_blank');
+        printModal.hide();
+      });
+    }
+
+    printModal.show();
+
+    @endif
+    // === FIN: LÓGICA MODAL IMPRESIÓN ===
   }); // Fin de $(document).ready
   </script>
 

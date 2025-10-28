@@ -43,6 +43,11 @@ Route::middleware('auth')->group(function () {
     // --- Rutas para Muestras ---
     Route::get('/muestras/registro', [MuestraController::class, 'create'])->name('muestras.create');
     Route::post('/muestras/registro', [MuestraController::class, 'store'])->name('muestras.store');
+    
+    // --- RUTA NUEVA PARA ETIQUETA ---
+    Route::get('/muestras/{muestra}/etiqueta', [MuestraController::class, 'mostrarEtiqueta'])->name('muestras.etiqueta');
+    // --- FIN RUTA NUEVA ---
+    
     Route::get('/muestras/analisis', [MuestraController::class, 'analisisIndex'])->name('muestras.analisis');
     Route::get('/api/muestras-pendientes', [MuestraController::class, 'fetchPendientes'])->name('api.muestras.pendientes');
     Route::patch('/muestras/{muestra}/rechazar', [MuestraController::class, 'rechazar'])->name('muestras.rechazar');

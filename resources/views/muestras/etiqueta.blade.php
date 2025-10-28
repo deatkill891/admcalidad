@@ -3,63 +3,68 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Etiqueta Muestra {{ $muestra->id }}</title>
+  <title>Etiqueta Muestra {{ $muestra->IdMuestra }}</title>
   <style>
   body {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 5mm;
-    /* Margen para impresión */
-    width: 80mm;
-    /* Ancho estimado de etiqueta, ajusta según necesidad */
-    height: 50mm;
-    /* Alto estimado de etiqueta, ajusta según necesidad */
-    border: 1px solid #ccc;
-    /* Borde para visualizar el tamaño */
+    padding: 4mm;
+    /* Reducir padding para más espacio */
+    width: 70mm;
+    /* Ancho ajustado */
+    height: 45mm;
+    /* Alto ajustado */
+    border: 1px dashed #ccc;
+    /* Borde punteado para visualización */
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    /* Distribuye el espacio */
     font-size: 10pt;
-    /* Tamaño de fuente base */
+    line-height: 1.3;
   }
 
-  .header,
-  .footer {
+  .header {
     text-align: center;
     font-weight: bold;
+    font-size: 11pt;
   }
 
   .content {
     display: flex;
     justify-content: space-between;
-    /* Espacio entre info y QR */
     align-items: center;
-    /* Alinea verticalmente */
     flex-grow: 1;
-    /* Ocupa el espacio disponible */
     padding: 2mm 0;
   }
 
   .info p {
-    margin: 1mm 0;
-    /* Espacio entre líneas de información */
-    line-height: 1.2;
+    margin: 1.5mm 0;
+    /* Espacio entre líneas */
   }
 
   .qr-code {
     text-align: right;
+    padding-left: 3mm;
   }
 
-  /* Estilos para impresión - Oculta borde, ajusta márgenes */
+  .print-button {
+    display: none;
+    /* Oculto por defecto */
+  }
+
+  /* Estilos para impresión */
   @media print {
     body {
       border: none;
+      /* Sin borde al imprimir */
       margin: 0;
       padding: 0;
-      width: auto;
-      height: auto;
+
+      /* Ocultar el pie de página del navegador si es posible */
+      @page {
+        margin: 0;
+      }
     }
 
     .print-button {
@@ -67,43 +72,39 @@
       /* Oculta el botón al imprimir */
     }
   }
-
-  .print-button {
-    margin-top: 5mm;
-    text-align: center;
-  }
   </style>
 </head>
 
-<body>
+{{-- Añadimos el script para auto-imprimir al cargar --}}
+
+<body onload="window.print();">
+
   <div class="header">
-    MUESTRA DE CALIDAD
+    ADM Calidad Central
   </div>
 
   <div class="content">
     <div class="info">
-      <p><strong>ID Muestra:</strong> {{ $muestra->id }}</p>
-      {{-- Formatea la fecha como necesites --}}
-      <p><strong>Recibido:</strong> {{ $muestra->created_at->format('d/m/Y H:i') }}</p>
-      {{-- Asume que tienes relaciones definidas en el modelo Muestra --}}
-      {{-- Si no usas relaciones, muestra los IDs directamente: $muestra->material_id --}}
-      <p><strong>Material:</strong> {{ $muestra->material->nombre ?? 'N/A' }}</p>
-      {{-- Ajusta 'nombre' al campo correcto --}}
-      <p><strong>Proveedor:</strong> {{ $muestra->proveedor->nombre ?? 'N/A' }}</p>
-      {{-- Ajusta 'nombre' al campo correcto --}}
-      <p><strong>Ubicación:</strong> {{ $muestra->ubicacion->nombre ?? 'N/A' }}</p>
-      {{-- Ajusta 'nombre' al campo correcto --}}
+      <p><strong>ID Muestra:</strong> {{ $muestra->IdMuestra }}</p>
+      {{-- Usar FechaRegistro para la fecha y hora --}}
+      <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($muestra->FechaRegistro)->format('d/m/Y H:i') }}</p>
+      {{-- Usar la relación 'material' y el campo 'Material' --}}
+      <p><strong>Material:</strong> {{ $muestra->material->Material ?? 'N/A' }}</p>
+      {{-- Mostrar Proveedor o Solicitante --}}
+      <p><strong>Origen:</strong> {{ $muestra->Proveedor ?: ($muestra->Solicitante ?: 'N/A') }}</p>
     </div>
     <div class="qr-code">
-      {!! $qrCode !!} {{-- Importante usar {!! !!} para renderizar el SVG/HTML del QR --}}
+      {{-- Renderizar el SVG del QR que viene del controlador --}}
+      {!! $qrCode !!}
     </div>
   </div>
 
-  <div class="footer">
-    {{ $muestra->id }}
+  <div class="footer" style="text-align: center; font-size: 8pt; font-weight: bold;">
+    {{ $muestra->IdMuestra }}
   </div>
 
-  <div class="print-button">
+  {{-- Botón manual por si falla la auto-impresión --}}
+  <div class="print-button" style="display: block; text-align: center; margin-top: 5mm;">
     <button onclick="window.print();">Imprimir Etiqueta</button>
   </div>
 
